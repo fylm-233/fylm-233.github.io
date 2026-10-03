@@ -1,0 +1,140 @@
+name: Fetch Bilibili Data
+
+# =============================================================================
+# 每 6 小时抓取一次 UID 11897608 的账号信息与最新投稿，写回 bili.json 并提交。
+# 由于 GitHub Pages 是纯静态托管，无法在浏览器端直接调用 B 站接口（跨域 + 风控），
+# 因此采用「Actions 定时抓取 → 提交 JSON → 前端相对路径读取」的方案。
+# =============================================================================
+
+on:
+  schedule:
+    # 注意：GitHub Actions 的 cron 使用 UTC 时区，0 */6 * * * 即每 6 小时整点执行
+    # 对应北京时间 00:00 / 06:00 / 12:00 / 18:00
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      mid:
+        description: '目标 UID（留空则使用默认值 11897608）'
+        required: false
+        default: ''
+      limit:
+        description: '抓取投稿条数'
+        required: false
+        default: '5'
+      pretty:
+        description: '是否缩进输出 bili.json（便于人工查看 diff）'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+# 允许工作流向仓库写入（提交 bili.json 所必需）
+permissions:
+  contents: write
+
+# 同一时间只保留一个抓取任务，避免并发提交冲突
+concurrency:
+  group: fetch-bili
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    name: 抓取并提交 bili.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          # 使用内置 token，配合下方 permissions: contents: write 即可推送
+          persist-credentials: true
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: 环境自检
+        run: |
+          python --version
+          echo "工作目录：$(pwd)"
+          ls -la
+
+      - name: 抓取 B 站数据
+        id: fetch
+        env:
+          # 可选：在仓库 Settings → Secrets and variables → Actions 中新增 BILI_COOKIE
+          # 内容形如：SESSDATA=xxxxxxxx; bili_jct=xxxxxxxx
+          # 携带登录态可显著降低被风控（-352 / -412）的概率；未配置时以游客身份请求。
+          BILI_COOKIE: ${{ secrets.BILI_COOKIE }}
+          BILI_MID: ${{ github.event.inputs.mid || '11897608' }}
+        run: |
+          set -o pipefail
+          PRETTY="--pretty"
+          if [ "${{ github.event.inputs.pretty }}" = "false" ]; then
+            PRETTY=""
+          fi
+          LIMIT="${{ github.event.inputs.limit }}"
+          if [ -z "$LIMIT" ]; then LIMIT=5; fi
+
+          python scripts/fetch_bili.py \
+            --mid "${BILI_MID:-11897608}" \
+            --out bili.json \
+            --limit "$LIMIT" \
+            $PRETTY
+
+      - name: 校验产物
+        run: |
+          python - <<'PY'
+          import json, sys
+          with open('bili.json', encoding='utf-8') as f:
+              d = json.load(f)
+          print('uid        :', d.get('uid'))
+          print('ok / stale :', d.get('ok'), '/', d.get('stale'))
+          print('generated  :', d.get('generated_at'))
+          print('videos     :', len(d.get('videos') or []))
+          print('dynamics   :', len(d.get('dynamics') or []))
+          print('errors     :', d.get('errors'))
+          if not isinstance(d.get('videos'), list):
+              sys.exit('bili.json 结构异常：videos 不是数组')
+
+          # bili.data.js 必须存在且能被 Node 正常求值
+          with open('bili.data.js', encoding='utf-8') as f:
+              js = f.read()
+          if 'window.BILI_DATA =' not in js:
+              sys.exit('bili.data.js 结构异常：缺少 window.BILI_DATA 赋值')
+          print('bili.data.js : OK (%d 字节)' % len(js.encode('utf-8')))
+          PY
+
+      - name: 提交变更
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 先同步远端，避免因其它提交导致 push 被拒
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+
+          if [ -z "$(git status --porcelain bili.json bili.data.js)" ]; then
+            echo "数据文件无变化，跳过提交。"
+            exit 0
+          fi
+
+          git add bili.json bili.data.js
+          git commit -m "chore(data): 更新 bili.json / bili.data.js [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: 输出摘要
+        if: always()
+        run: |
+          {
+            echo "### Bilibili 数据抓取结果"
+            echo ""
+            echo "| 项 | 值 |"
+            echo "| --- | --- |"
+            echo "| 触发方式 | ${{ github.event_name }} |"
+            echo "| UID | ${{ github.event.inputs.mid || '11897608' }} |"
+            echo "| 结果 | ${{ job.status }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

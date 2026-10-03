@@ -1,1 +1,29 @@
+# ---- 数据抓取临时文件 ----
+bili.json.tmp
+
+# ---- 原仓库遗留忽略项（保留） ----
 images.xlsx
+
+# ---- 依赖与构建产物 ----
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ---- 本地预览 / 调试产物 ----
+.edge-*/
+.edge-tmp/
+_shot*.png
+_v*.png
+_final.png
+_shot.js
+_verify.js
+_bili_real.json
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
