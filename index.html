@@ -379,7 +379,30 @@
           </div>
 
           <!-- ---------- 兼容性 / 数据源说明 ---------- -->
-
+          <div class="group">
+            <span class="group__legend">数据源与兼容性</span>
+            <div class="kv">
+              <dl>
+                <dt>数据文件</dt><dd id="kvFile">bili.json</dd>
+                <dt>更新时间</dt><dd id="kvTime">-</dd>
+                <dt>数据状态</dt><dd id="kvState">-</dd>
+                <dt>抓取方式</dt><dd>Python + WBI 签名（每 6 小时由 GitHub Actions 定时更新）</dd>
+                <dt>前端加载</dt><dd>优先 <code>fetch</code> 相对路径读取 <code>bili.json</code>；<code>file://</code> 下回退读取 <code>bili.data.js</code>，不依赖任何第三方接口</dd>
+              </dl>
+            </div>
+            <div style="margin-top:8px;">
+              <p class="tips" style="font-weight:bold;">浏览器兼容性</p>
+              <ul class="tips">
+                <li>基线：<b>EdgeHTML 18（Edge 18 / Windows 10 1809）</b>及以上。</li>
+                <li>脚本：ES2017 语法 + <code>fetch</code> + <code>AbortController</code>。</li>
+                <li>样式：CSS 自定义属性、Flexbox、CSS Grid；立体边框由 <code>border</code> 双色 + <code>box-shadow: inset</code> 模拟。</li>
+                <li>进度条为纯 CSS 关键帧动画，不依赖 JS 定时器。</li>
+                <li>自定义滚动条在 Chromium 内核下生效，EdgeHTML 回退为系统原生样式。</li>
+                <li>数据读取：HTTP 下走 <code>fetch</code>；<code>file://</code> 下自动回退为 <code>&lt;script src="bili.data.js"&gt;</code>，因此双击打开也能渲染。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
         <!-- ============================ 侧栏 ============================ -->
         <div class="col-side">
 
