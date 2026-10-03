@@ -278,10 +278,28 @@
     } else {
       setText('statusMain', '已最小化');
     }
+
+    /* 让共享管理器知道主窗口已退场：若有其他可见窗口，交还活动状态 */
+    if (WM.activeId === 'win') {
+      const heir = WM.order.filter((wid) => wid !== 'win' && WM.isVisible(wid))[0];
+      if (heir) wmSetActive(heir);
+      else {
+        WM.activeId = null;
+        WM.order.forEach((wid) => {
+          if (wid === 'win') return;
+          const api = WM.reg[wid];
+          if (api) api.setInactive(true);
+        });
+      }
+    }
   };
 
   const showWindow = () => {
-    if (!hidden) return;
+    if (!hidden) {
+      /* 已可见：仅需置顶聚焦，不应重复播放出现动画 */
+      wmSetActive('win');
+      return;
+    }
     hidden = false;
     win.classList.remove('is-hidden');
     win.classList.remove('is-inactive');
@@ -291,18 +309,105 @@
     taskBtn.classList.add('is-active');
     hideToast();
     setText('statusMain', '就绪');
+    wmSetActive('win');
   };
 
   const toggleWindow = () => (hidden ? showWindow() : hideWindow('min'));
 
+  /* ======================================================================
+     5b. 窗口管理器（极简共享契约）
+     ----------------------------------------------------------------------
+     多个窗口模块（本文件与 notepad.js）需要互相知道：
+       「谁现在是活动窗口」「谁只是可见但未激活」
+     任务栏的正确语义是：
+       · 点击非活动但可见的窗口按钮 → 激活它（不隐藏）
+       · 再次点击已激活的窗口按钮   → 最小化
+     为避免两个模块互相 import，这里把能力注册到 window.WinWM，
+     每个模块只登记三个回调：show / hide / isVisible。
+     ====================================================================== */
+  const WM = (window.WinWM = window.WinWM || {
+    order: [],          // 登记顺序，用于 z-index 与「谁在上」判断
+    activeId: null,     // 当前活动窗口 id
+    reg: {},
+  });
+
+  function wmRegister(id, api) {
+    if (!WM.reg[id]) WM.order.push(id);
+    WM.reg[id] = api;
+  }
+
+  /* 把某个窗口标记为活动窗口，其余可见窗口转为非活动。
+     对不可见窗口同样调用 setInactive(true)，
+     以保证其任务栏按钮的高亮被清除（避免「幽灵高亮」）。 */
+  function wmSetActive(id) {
+    WM.activeId = id;
+    WM.order.forEach((wid) => {
+      const api = WM.reg[wid];
+      if (!api) return;
+      if (wid === id) api.setInactive(false);
+      else api.setInactive(true);
+    });
+  }
+
+  WM.setActive = wmSetActive;
+  WM.register = wmRegister;
+  WM.isVisible = (id) => {
+    const api = WM.reg[id];
+    return !!(api && api.isVisible());
+  };
+  WM.isActive = (id) => WM.activeId === id;
+
   on('btnMin', 'click', () => hideWindow('min'));
   on('btnClose', 'click', () => hideWindow('close'));
   on('btnMin2', 'click', () => hideWindow('min'));
-  taskBtn.addEventListener('click', toggleWindow);
+
+  /* 任务栏按钮：可见但非活动 → 激活；已活动 → 最小化 */
+  taskBtn.addEventListener('click', () => {
+    if (hidden) { showWindow(); return; }
+    if (WM.activeId === 'win') hideWindow('min');
+    else showWindow();
+  });
 
   /* 桌面图标：我的电脑 / 回收站 / 最新投稿 → 唤回窗口 */
   ['icoComputer', 'icoRecycle', 'icoVideos'].forEach((id) => {
     on(id, 'click', (e) => { e.preventDefault(); showWindow(); });
+  });
+
+  /* 向共享管理器登记主窗口。
+     setInactive 必须同时同步「窗口标题栏渐变」与「任务栏按钮高亮」——
+     win 的按钮高亮原先只由 showWindow/hideWindow 切换，
+     当别的窗口通过 wmSetActive 把主窗口置为非活动时，按钮高亮不会被清除，
+     于是任务栏上出现「两个按钮同时高亮」的错误观感。 */
+  wmRegister('win', {
+    isVisible: () => !hidden && !win.classList.contains('is-hidden'),
+    setInactive: (on2) => {
+      win.classList.toggle('is-inactive', !!on2);
+      taskBtn.classList.toggle('is-active', !on2);
+    },
+    show: () => showWindow(),
+    hide: () => hideWindow('min'),
+  });
+  WM.activeId = 'win';
+  taskBtn.classList.add('is-active');
+
+  /* 记事本图标 → 打开记事本窗口（由 notepad.js 提供实现） */
+  on('icoNotepad', 'click', (e) => {
+    e.preventDefault();
+    if (window.WinNotepad && typeof window.WinNotepad.open === 'function') {
+      window.WinNotepad.open();
+    } else {
+      toast('记事本不可用', 'assets/notepad.js 未加载。');
+    }
+  });
+
+  /* 播放器图标 → 打开媒体播放器窗口（由 player.js 提供实现） */
+  on('icoPlayer', 'click', (e) => {
+    e.preventDefault();
+    if (window.WinPlayer && typeof window.WinPlayer.open === 'function') {
+      window.WinPlayer.open();
+    } else {
+      toast('播放器不可用', 'assets/player.js 未加载。');
+    }
   });
 
   /* ======================================================================
@@ -369,6 +474,41 @@
       case 'open-videos':  scrollToEl($('postsGroup')); break;
       case 'open-feed':    scrollToEl($('feedGroup')); break;
       case 'raw':          window.open(DATA_URL, '_blank'); break;
+      /* 记事本由 notepad.js 接管；此处仅在其未加载时给出提示，保证降级可用 */
+      case 'open-notepad':
+        if (window.WinNotepad && typeof window.WinNotepad.open === 'function') {
+          window.WinNotepad.open();
+        } else {
+          toast('记事本不可用', 'assets/notepad.js 未加载，无法打开记事本窗口。');
+        }
+        break;
+      /* 媒体播放器由 player.js 接管，同上做降级处理 */
+      case 'open-player':
+        if (window.WinPlayer && typeof window.WinPlayer.open === 'function') {
+          window.WinPlayer.open();
+        } else {
+          toast('播放器不可用', 'assets/player.js 未加载，无法打开媒体播放器窗口。');
+        }
+        break;
+      case 'mp-close':
+        if (window.WinPlayer) window.WinPlayer.close();
+        break;
+      case 'mp-skin':
+        if (window.WinPlayerMenu) window.WinPlayerMenu.setSkin(true);
+        break;
+      case 'mp-native':
+        if (window.WinPlayerMenu) window.WinPlayerMenu.setSkin(false);
+        break;
+      case 'mp-reset':
+        if (window.WinPlayerMenu) window.WinPlayerMenu.reset();
+        break;
+      case 'mp-reload':
+        reloadPlayerFrame();
+        break;
+      case 'mp-open-native':
+        window.open('https://music.163.com/#/song?id=22636810', '_blank');
+        break;
+      case 'mp-help': dialogPlayerHelp(); break;
       case 'copy-link':    copyText(location.href, '本页链接'); break;
       case 'copy-uid':     copyText(UID, 'UID'); break;
       case 'copy-bv':
@@ -386,6 +526,7 @@
         $('optThumbs').checked = !$('optThumbs').checked;
         applyThumbs();
         break;
+      case 'wall-img':
       case 'wall-gray':
       case 'wall-teal':
       case 'wall-navy':    setWall(act); break;
@@ -457,15 +598,38 @@
     if (mi) mi.classList.toggle('is-checked', show);
   }
 
+  /* ---------- 桌面壁纸 ---------- */
+  const WALLS = ['wall-img', 'wall-gray', 'wall-teal', 'wall-navy'];
+  const FIT_MODES = ['wallfit-cover', 'wallfit-contain', 'wallfit-tile'];
+  const WALL_MENU = {
+    'wall-img':  'miWallImg',
+    'wall-gray': 'miWallGray',
+    'wall-teal': 'miWallTeal',
+    'wall-navy': 'miWallNavy',
+  };
+
   function setWall(cls) {
-    desktop.classList.remove('wall-gray', 'wall-teal', 'wall-navy');
+    WALLS.forEach((c) => desktop.classList.remove(c));
     desktop.classList.add(cls);
-    const map = { 'wall-gray': 'miWallGray', 'wall-teal': 'miWallTeal', 'wall-navy': 'miWallNavy' };
-    Object.entries(map).forEach((pair) => {
+    /* 选择图片壁纸时才叠加网格纹理标记 */
+    desktop.setAttribute('data-texture', cls === 'wall-img' ? '0' : '0');
+    Object.entries(WALL_MENU).forEach((pair) => {
       const mi = $(pair[1]);
       if (mi) mi.classList.toggle('is-checked', pair[0] === cls);
     });
-    toast('桌面背景', '已切换桌面背景。');
+    toast('桌面背景', cls === 'wall-img' ? '已切换为壁纸图片。' : '已切换桌面背景。');
+  }
+
+  /* 壁纸适配模式：cover / contain / tile */
+  function setWallFit(mode) {
+    FIT_MODES.forEach((c) => desktop.classList.remove(c));
+    desktop.classList.add('wallfit-' + mode);
+    if (desktop.classList.contains('wall-gray')) {
+      /* 经典灰自带点阵纹理，切到图片模式时才有意义 */
+      toast('壁纸适配', '当前为纯色背景，「' + mode + '」将在切换到壁纸时生效。');
+    } else {
+      toast('壁纸适配', '已设为 ' + mode + ' 模式。');
+    }
   }
 
   on('optIcons', 'change', applyIcons);
@@ -478,6 +642,9 @@
 
   document.querySelectorAll('[data-wall]').forEach((btn) => {
     btn.addEventListener('click', () => setWall(btn.getAttribute('data-wall')));
+  });
+  document.querySelectorAll('[data-wallfit]').forEach((btn) => {
+    btn.addEventListener('click', () => setWallFit(btn.getAttribute('data-wallfit')));
   });
 
   /* ======================================================================
@@ -618,6 +785,38 @@
         '<p style="margin-top:6px;">当前协议：<code>' + esc(location.protocol) + '</code></p>' +
         '<p>最近状态：<code>' + esc(state.lastStatus) + '</code></p>' +
         '<p>尝试次数：<code>' + state.attempt + '</code></p>',
+    });
+  }
+
+  /* ---------- 播放器：重载 iframe（仅重建 src，不动窗口状态） ---------- */
+  function reloadPlayerFrame() {
+    const fr = $('mpFrame');
+    if (!fr) {
+      toast('播放器不可用', 'assets/player.js 未加载，无法操作播放器窗口。');
+      return;
+    }
+    /* 用带时间戳的新 src 强制重新请求，等价于「刷新播放器」 */
+    const base = '//music.163.com/outchain/player?type=2&id=22636810&auto=1&height=66';
+    fr.setAttribute('src', base + '&_=' + Date.now());
+    toast('播放器已重载', '已重新向 music.163.com 请求播放器文档。');
+  }
+
+  /* ---------- 播放器：跨域与覆盖层说明 ---------- */
+  function dialogPlayerHelp() {
+    showDialog({
+      title: '关于覆盖层与跨域',
+      html:
+        '<p><b>为什么不能让原生按钮「真的」变成经典样式？</b></p>' +
+        '<p style="margin-top:6px;">网易云外链播放器位于 <code>music.163.com</code>，' +
+        '与本站不同源。同源策略下，父页面<b>无法读取或修改</b> iframe 内部的 DOM，' +
+        '因此不存在「替换其按钮样式」的纯前端做法。</p>' +
+        '<p style="margin-top:8px;"><b>本站采用的可行方案：</b></p>' +
+        '<ul style="margin:6px 0 0 0;">' +
+        '<li><b>视觉覆盖</b>：在 iframe 之上铺一层同尺寸经典控件条，像素级盖住原生控件区。</li>' +
+        '<li><b>点击拦截</b>：覆盖层是真实 DOM，落在其上的点击<b>不会</b>穿透到 iframe。</li>' +
+        '<li><b>功能回落</b>：点工具栏「皮肤」可隐藏覆盖层，直接用原生控件精确操作。</li>' +
+        '<li><b>进度说明</b>：无法读取真实播放位置，进度条为本地模拟的视觉意象。</li>' +
+        '</ul>',
     });
   }
 
@@ -1076,6 +1275,14 @@
   /* ======================================================================
      17. 启动
      ====================================================================== */
+  /* 把主窗口的通用对话框借给其它窗口模块使用（player.js 的「说明」按钮）。
+     只暴露必要的函数，不泄漏内部状态。 */
+  window.WinMainDialogs = {
+    playerHelp: dialogPlayerHelp,
+    about: dialogAbout,
+    compat: dialogCompat,
+  };
+
   updateZoom();
   applyIcons();
   applyThumbs();

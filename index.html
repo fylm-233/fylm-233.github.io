@@ -8,9 +8,9 @@
 <!-- ======================================================================
      SEO / 社交分享
      ====================================================================== -->
-<title>欢迎来到风雨铃木的小站</title>
-<meta name="description" content="以 Windows Classic（Windows 3.1 - 2000 / Y2K）界面为蓝本的静态主页，展示哔哩哔哩 UID 11897608 的账号信息、信息动态与最新 5 条投稿。纯静态、无框架，兼容 EdgeHTML 18 及以上。">
-<meta name="keywords" content="Windows Classic,Windows 95,Windows 98,Y2K,复古网页,哔哩哔哩,B站,UID 11897608,Edge 18,GitHub Pages">
+<title>风雨铃木的小站 | Windows Classic 风格主页</title>
+<meta name="description" content="以 Windows Classic（Windows 3.1 - 2000 / Y2K）界面为蓝本的静态主页，展示哔哩哔哩 UID 11897608 的账号信息、信息动态与最新 5 条投稿，并内置一个可渲染 Markdown 的「记事本」窗口。纯静态、无框架，兼容 EdgeHTML 18 及以上。">
+<meta name="keywords" content="Windows Classic,Windows 95,Windows 98,Y2K,复古网页,哔哩哔哩,B站,UID 11897608,Markdown 编辑器,Edge 18,GitHub Pages">
 <meta name="author" content="Windows Classic Blog">
 <meta name="robots" content="index, follow">
 <meta name="color-scheme" content="light">
@@ -35,8 +35,11 @@
 <body>
 <!-- ======================================================================
      桌面层
+     data-wall = 壁纸方案：img / gray / teal / navy
+     data-wallfit = 图片适配：cover / contain / tile
+     data-texture = 是否叠加网格纹理（1/0）
      ====================================================================== -->
-<div class="desktop wall-gray" id="desktop">
+<div class="desktop wall-img wallfit-cover" id="desktop" data-texture="0">
 
   <!-- ---------- 桌面图标 ---------- -->
   <div class="desk-icons" id="deskIcons">
@@ -101,6 +104,34 @@
       </span>
       <span class="desk-icon__label">bili.json</span>
     </a>
+
+    <a class="desk-icon" href="#" id="icoNotepad" title="记事本 · 打开 README.md">
+      <span class="desk-icon__glyph">
+        <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
+          <path d="M6 3h20v26H6z" fill="#ffffff" stroke="#000000"/>
+          <path d="M6 3h20v4H6z" fill="#c0c0c0" stroke="#000000"/>
+          <path d="M10 12h12M10 16h12M10 20h12M10 24h8" stroke="#000080" stroke-width="1.3"/>
+          <path d="M2 6h4M2 11h4M2 16h4M2 21h4M2 26h4" stroke="#808080" stroke-width="1.6"/>
+        </svg>
+      </span>
+      <span class="desk-icon__label">记事本.md</span>
+    </a>
+
+    <a class="desk-icon" href="#" id="icoPlayer" title="媒体播放器 · 夢消失 ～ Lost Dream">
+      <span class="desk-icon__glyph">
+        <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
+          <rect x="3" y="4" width="26" height="22" fill="#c0c0c0" stroke="#000000"/>
+          <rect x="5" y="6" width="22" height="3" fill="#000080"/>
+          <rect x="5" y="11" width="22" height="5" fill="#ffffff" stroke="#000000"/>
+          <rect x="6" y="12" width="11" height="3" fill="#000080"/>
+          <rect x="6" y="19" width="5" height="4" fill="#dfdfdf" stroke="#000000"/>
+          <rect x="12" y="19" width="5" height="4" fill="#dfdfdf" stroke="#000000"/>
+          <rect x="18" y="19" width="5" height="4" fill="#dfdfdf" stroke="#000000"/>
+          <path d="M8 21l3 1.5-3 1.5z" fill="#000000"/>
+        </svg>
+      </span>
+      <span class="desk-icon__label">播放器</span>
+    </a>
   </div>
 
   <!-- ====================================================================
@@ -163,6 +194,7 @@
           <a class="menu-pop__item is-checked" href="#" data-act="toggle-icons" id="miIcons">显示桌面图标</a>
           <a class="menu-pop__item is-checked" href="#" data-act="toggle-thumb" id="miThumbShow">显示视频封面</a>
           <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item is-checked" href="#" data-act="wall-img" id="miWallImg">桌面：壁纸图片</a>
           <a class="menu-pop__item" href="#" data-act="wall-gray" id="miWallGray">桌面：经典灰</a>
           <a class="menu-pop__item" href="#" data-act="wall-teal" id="miWallTeal">桌面：青绿</a>
           <a class="menu-pop__item" href="#" data-act="wall-navy" id="miWallNavy">桌面：深蓝</a>
@@ -177,6 +209,9 @@
       </span>
       <span class="menu-item" data-menu="tools">工具(<u>T</u>)
         <span class="menu-pop">
+          <a class="menu-pop__item" href="#" data-act="open-notepad">打开记事本（Markdown）…</a>
+          <a class="menu-pop__item" href="#" data-act="open-player">打开媒体播放器…</a>
+          <span class="menu-pop__sep"></span>
           <a class="menu-pop__item" href="#" data-act="check-source">检查数据源</a>
           <a class="menu-pop__item" href="#" data-act="about-json">关于 bili.json</a>
           <span class="menu-pop__sep"></span>
@@ -403,6 +438,7 @@
             </div>
           </div>
         </div>
+
         <!-- ============================ 侧栏 ============================ -->
         <div class="col-side">
 
@@ -448,10 +484,18 @@
             <label class="check-label"><input type="checkbox" class="check" id="optAnim" checked>窗口动画效果</label>
 
             <p class="tips" style="margin:6px 0 4px;">桌面背景</p>
-            <div>
+            <div class="btnrow" style="margin-top:0;">
+              <button type="button" class="btn btn--sm" data-wall="wall-img">壁纸</button>
               <button type="button" class="btn btn--sm" data-wall="wall-gray">经典灰</button>
               <button type="button" class="btn btn--sm" data-wall="wall-teal">青绿</button>
               <button type="button" class="btn btn--sm" data-wall="wall-navy">深蓝</button>
+            </div>
+
+            <p class="tips" style="margin:6px 0 4px;">壁纸适配</p>
+            <div class="btnrow" style="margin-top:0;">
+              <button type="button" class="btn btn--sm" data-wallfit="cover">填充(cover)</button>
+              <button type="button" class="btn btn--sm" data-wallfit="contain">适应(contain)</button>
+              <button type="button" class="btn btn--sm" data-wallfit="tile">平铺(tile)</button>
             </div>
           </div>
 
@@ -482,6 +526,383 @@
   </div><!-- /window -->
 
   <!-- ====================================================================
+       记事本窗口（复用 .window 架构，与主窗口并列，可经任务栏切换）
+       ==================================================================== -->
+  <div class="window window--np is-hidden" id="winNp" role="region" aria-label="记事本 · Markdown 预览" aria-hidden="true">
+
+    <!-- ---------- 标题栏 ---------- -->
+    <div class="title-bar" id="npTitlebar">
+      <span class="title-bar__icon">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path d="M2.5 1.5h11v13h-11z" fill="#ffffff" stroke="#000000"/>
+          <path d="M2.5 1.5h11v2h-11z" fill="#c0c0c0" stroke="#000000"/>
+          <path d="M4.5 5.5h7M4.5 7.5h7M4.5 9.5h7M4.5 11.5h4" stroke="#000080"/>
+          <path d="M.8 4h2M.8 6.5h2M.8 9h2M.8 11.5h2" stroke="#808080" stroke-width="1.2"/>
+        </svg>
+      </span>
+      <span class="title-bar__text" id="npTitle">记事本 · 未命名.md</span>
+      <span class="title-bar__btns">
+        <button type="button" class="title-btn" id="npBtnMin" title="最小化" aria-label="最小化">
+          <span class="title-btn__glyph"><span class="glyph-min"></span></span>
+        </button>
+        <button type="button" class="title-btn" id="npBtnMax" title="最大化" aria-label="最大化" aria-pressed="false">
+          <span class="title-btn__glyph"><span class="glyph-max" id="npMaxGlyph"></span></span>
+        </button>
+        <button type="button" class="title-btn title-btn--close" id="npBtnClose" title="关闭" aria-label="关闭">
+          <span class="title-btn__glyph"><span class="glyph-close__x">&times;</span></span>
+        </button>
+      </span>
+    </div>
+
+    <!-- ---------- 菜单栏 ---------- -->
+    <div class="menubar" id="npMenubar">
+      <span class="menu-item" data-menu="np-file">文件(<u>F</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item" href="#" data-act="np-open">打开本地 .md 文件…<span class="menu-pop__key">Ctrl+O</span></a>
+          <a class="menu-pop__item" href="#" data-act="np-export">导出当前 .md<span class="menu-pop__key">Ctrl+S</span></a>
+          <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item" href="#" data-act="np-reset">重新载入示例文档</a>
+          <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item" href="#" data-act="np-close">关闭(<u>C</u>)<span class="menu-pop__key">Esc</span></a>
+        </span>
+      </span>
+      <span class="menu-item" data-menu="np-edit">编辑(<u>E</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item" href="#" data-act="np-copy-md">复制 Markdown 源码</a>
+          <a class="menu-pop__item" href="#" data-act="np-copy-text">复制渲染后纯文本</a>
+          <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item" href="#" data-act="np-select-all">全选正文(<u>A</u>)<span class="menu-pop__key">Ctrl+A</span></a>
+        </span>
+      </span>
+      <span class="menu-item" data-menu="np-view">查看(<u>V</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item is-checked" href="#" data-act="np-view-render" id="npMiRender">渲染视图</a>
+          <a class="menu-pop__item" href="#" data-act="np-view-source" id="npMiSource">源码视图</a>
+          <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item" href="#" data-act="np-view-split" id="npMiSplit">并排显示</a>
+          <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item is-checked" href="#" data-act="np-font-inc" id="npMiLineNo">显示行号</a>
+        </span>
+      </span>
+      <span class="menu-item" data-menu="np-help">帮助(<u>H</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item" href="#" data-act="np-help">Markdown 语法支持…</a>
+          <a class="menu-pop__item" href="#" data-act="np-about">关于记事本…</a>
+        </span>
+      </span>
+    </div>
+
+    <!-- ---------- 工具栏 ---------- -->
+    <div class="toolbar">
+      <button type="button" class="tb-btn" id="npTbOpen" title="打开本地 .md 文件">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M1 3h5l1.4 1.6H15V13H1z" fill="#ffd75e" stroke="#000000"/>
+            <path d="M1 3V2h5l1.4 1z" fill="#ffe9a8" stroke="#000000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">打开</span>
+      </button>
+
+      <button type="button" class="tb-btn" id="npTbReset" title="重新载入示例文档">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M13 8a5 5 0 1 1-1.6-3.7" fill="none" stroke="#008000" stroke-width="1.6"/>
+            <path d="M13.2 1.6v3.2H10z" fill="#008000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">示例</span>
+      </button>
+
+      <span class="tb-sep"></span>
+
+      <button type="button" class="tb-btn" id="npTbRender" title="渲染视图">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M4 3.5h8M4 6.5h8M4 9.5h5" stroke="#000080" stroke-width="1.3"/>
+            <path d="M10.5 9.5l3 2.4-3 2.4z" fill="#008000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">渲染</span>
+      </button>
+
+      <button type="button" class="tb-btn" id="npTbSource" title="源码视图">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M6 4L2.4 8 6 12M10 4l3.6 4L10 12" fill="none" stroke="#000080" stroke-width="1.6"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">源码</span>
+      </button>
+
+      <button type="button" class="tb-btn" id="npTbSplit" title="并排显示源码与渲染">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <rect x="1.5" y="2.5" width="13" height="11" fill="#ffffff" stroke="#000000"/>
+            <path d="M8 2.5v11" stroke="#808080"/>
+            <path d="M3 5.5h3M3 8h3" stroke="#000080"/>
+            <path d="M9.6 5.5h3.4M9.6 8h3.4M9.6 10.5h2" stroke="#008000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">并排</span>
+      </button>
+
+      <span class="tb-sep"></span>
+
+      <button type="button" class="tb-btn" id="npTbCopy" title="复制 Markdown 源码">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <rect x="2.5" y="1.5" width="8" height="10" fill="#ffffff" stroke="#000000"/>
+            <rect x="5.5" y="4.5" width="8" height="10" fill="#dfdfdf" stroke="#000000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">复制</span>
+      </button>
+
+      <button type="button" class="tb-btn" id="npTbHelp" title="Markdown 语法支持">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.6" fill="#ffffcc" stroke="#000080"/>
+            <path d="M6.2 6.2c0-1.1.9-1.8 1.9-1.8s1.8.7 1.8 1.7c0 1.4-1.9 1.5-1.9 3" fill="none" stroke="#000080" stroke-width="1.4"/>
+            <rect x="7.3" y="11" width="1.5" height="1.5" fill="#000080"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">语法</span>
+      </button>
+    </div>
+
+    <!-- ==================================================================
+         工作区：渲染视图 / 源码视图 / 并排
+         ================================================================== -->
+    <div class="workspace np-workspace" id="npWorkspace">
+      <div class="np-split" id="npSplit">
+
+        <!-- 源码面板（默认隐藏，仅源码 / 并排模式显示） -->
+        <div class="np-pane np-pane--source" id="npPaneSource">
+          <div class="np-lineno" id="npLineNo" aria-hidden="true"></div>
+          <textarea class="np-editor" id="npEditor" spellcheck="false" wrap="off"
+                    aria-label="Markdown 源码"></textarea>
+        </div>
+
+        <!-- 渲染面板 -->
+        <div class="np-pane np-pane--preview">
+          <div class="md" id="npPreview"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ---------- 状态栏 ---------- -->
+    <div class="statusbar">
+      <span class="statusbar__pane" id="npStatusMain" style="width:132px;">就绪</span>
+      <span class="statusbar__pane" id="npStatusMode" style="width:96px;">渲染视图</span>
+      <span class="statusbar__pane statusbar__pane--hide-sm" id="npStatusFile" style="width:186px;">未命名.md</span>
+      <span class="statusbar__pane statusbar__pane--grow" id="npStatusHint">已生成示例文档</span>
+      <span class="statusbar__pane statusbar__pane--right" id="npStatusStat">0 字</span>
+    </div>
+
+  </div><!-- /winNp -->
+
+  <!-- ====================================================================
+       媒体播放器窗口（网易云音乐外链 + Windows 3.1 视觉覆盖层）
+       ------------------------------------------------------------------
+       说明：iframe 位于 music.163.com，跨域使父页面无法读写其内部 DOM。
+       因此这里用「同框覆盖层」盖住原生控件区来实现经典外观，
+       覆盖层的装饰件不吃事件，热区负责拦截点击穿透。
+       工具栏「皮肤」按钮可随时回落到原生控件。
+       ==================================================================== -->
+  <div class="window window--mp is-hidden" id="winMp" role="region" aria-label="媒体播放器" aria-hidden="true">
+
+    <!-- ---------- 标题栏 ---------- -->
+    <div class="title-bar" id="mpTitlebar">
+      <span class="title-bar__icon">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <rect x="1" y="2" width="14" height="11" fill="#c0c0c0" stroke="#000000"/>
+          <rect x="2" y="3" width="12" height="1.6" fill="#000080"/>
+          <rect x="2" y="6" width="12" height="3" fill="#ffffff" stroke="#000000"/>
+          <rect x="2.6" y="6.6" width="6" height="1.8" fill="#000080"/>
+          <rect x="2.6" y="10" width="3" height="2" fill="#dfdfdf" stroke="#000000"/>
+          <path d="M3.4 10.8l1.6.7-1.6.7z" fill="#000000"/>
+        </svg>
+      </span>
+      <span class="title-bar__text" id="mpTitle">媒体播放器 · 夢消失 ～ Lost Dream</span>
+      <span class="title-bar__btns">
+        <button type="button" class="title-btn" id="mpBtnMin" title="最小化" aria-label="最小化">
+          <span class="title-btn__glyph"><span class="glyph-min"></span></span>
+        </button>
+        <button type="button" class="title-btn" id="mpBtnMax" title="最大化" aria-label="最大化" aria-pressed="false">
+          <span class="title-btn__glyph"><span class="glyph-max" id="mpMaxGlyph"></span></span>
+        </button>
+        <button type="button" class="title-btn title-btn--close" id="mpBtnClose" title="关闭" aria-label="关闭">
+          <span class="title-btn__glyph"><span class="glyph-close__x">&times;</span></span>
+        </button>
+      </span>
+    </div>
+
+    <!-- ---------- 菜单栏 ---------- -->
+    <div class="menubar" id="mpMenubar">
+      <span class="menu-item" data-menu="mp-file">文件(<u>F</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item" href="#" data-act="mp-open-native">在网易云打开本曲</a>
+          <a class="menu-pop__item" href="#" data-act="mp-reload">重新载入播放器</a>
+          <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item" href="#" data-act="mp-close">关闭(<u>C</u>)<span class="menu-pop__key">Esc</span></a>
+        </span>
+      </span>
+      <span class="menu-item" data-menu="mp-view">查看(<u>V</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item is-checked" href="#" data-act="mp-skin" id="mpMiSkin">经典皮肤（覆盖原生控件）</a>
+          <a class="menu-pop__item" href="#" data-act="mp-native" id="mpMiNative">原生控件（可精确控制）</a>
+          <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item" href="#" data-act="mp-reset">重置视觉进度</a>
+        </span>
+      </span>
+      <span class="menu-item" data-menu="mp-help">帮助(<u>H</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item" href="#" data-act="mp-help">关于覆盖层与跨域…</a>
+        </span>
+      </span>
+    </div>
+
+    <!-- ---------- 工具栏 ---------- -->
+    <div class="toolbar">
+      <button type="button" class="tb-btn is-on" id="mpTbSkin" title="视觉覆盖：开（点击回落到原生控件）" aria-pressed="true">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <rect x="1.5" y="2.5" width="13" height="11" fill="#c0c0c0" stroke="#000000"/>
+            <rect x="2.5" y="3.5" width="11" height="2" fill="#000080"/>
+            <rect x="2.5" y="6.5" width="11" height="3" fill="#ffffff" stroke="#000000"/>
+            <rect x="3" y="7" width="5" height="2" fill="#000080"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">皮肤</span>
+      </button>
+
+      <button type="button" class="tb-btn" id="mpTbReload" title="重新载入播放器">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M13 8a5 5 0 1 1-1.6-3.7" fill="none" stroke="#008000" stroke-width="1.6"/>
+            <path d="M13.2 1.6v3.2H10z" fill="#008000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">重载</span>
+      </button>
+
+      <span class="tb-sep"></span>
+
+      <button type="button" class="tb-btn" id="mpTbPrev" title="上一首（覆盖层拦截）">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <rect x="2" y="3" width="2" height="10" fill="#000000"/>
+            <path d="M13 3v10L5 8z" fill="#000000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">上一首</span>
+      </button>
+
+      <button type="button" class="tb-btn" id="mpTbPlay" title="播放（视觉）" aria-pressed="false">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M4 2.5l9 5.5-9 5.5z" fill="#000000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">播放</span>
+      </button>
+
+      <button type="button" class="tb-btn" id="mpTbNext" title="下一首（覆盖层拦截）">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <rect x="12" y="3" width="2" height="10" fill="#000000"/>
+            <path d="M3 3v10l8-5z" fill="#000000"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">下一首</span>
+      </button>
+
+      <span class="tb-sep"></span>
+
+      <button type="button" class="tb-btn" id="mpTbHelp" title="关于覆盖层与跨域限制">
+        <span class="tb-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.6" fill="#ffffcc" stroke="#000080"/>
+            <path d="M6.2 6.2c0-1.1.9-1.8 1.9-1.8s1.8.7 1.8 1.7c0 1.4-1.9 1.5-1.9 3" fill="none" stroke="#000080" stroke-width="1.4"/>
+            <rect x="7.3" y="11" width="1.5" height="1.5" fill="#000080"/>
+          </svg>
+        </span>
+        <span class="tb-btn__label">说明</span>
+      </button>
+    </div>
+
+    <!-- ==================================================================
+         舞台：固定尺寸的 iframe + 同框覆盖层
+         ================================================================== -->
+    <div class="workspace mp-workspace" id="mpWorkspace">
+      <div class="mp-stage" id="mpStage">
+
+        <!-- 真实播放器：宽 330 高 86（含 66 的播放器本体 + 上下留白） -->
+        <iframe class="mp-frame" id="mpFrame"
+                frameborder="no" border="0" marginwidth="0" marginheight="0"
+                width="330" height="86" scrolling="no"
+                data-src="//music.163.com/outchain/player?type=2&amp;id=22636810&amp;auto=1&amp;height=66"
+                title="网易云音乐外链播放器"></iframe>
+
+        <!-- 覆盖层：与 iframe 精确同框，营造 Windows 3.1 控件外观 -->
+        <div class="mp-cover" id="mpCover" aria-hidden="true">
+
+          <!-- 第一行：图标 + 标题 + 播放指示灯 -->
+          <div class="mp-cover__top">
+            <svg class="mp-cover__icon" viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="1" y="2" width="14" height="11" fill="#c0c0c0" stroke="#000000"/>
+              <rect x="2" y="3" width="12" height="1.6" fill="#000080"/>
+              <rect x="2" y="6" width="12" height="3" fill="#ffffff" stroke="#000000"/>
+              <rect x="2.6" y="6.6" width="6" height="1.8" fill="#000080"/>
+            </svg>
+            <span class="mp-cover__title" id="mpCoverTitle">夢消失 ～ Lost Dream — 上海アリス幻樂団</span>
+            <span class="mp-cover__led" aria-hidden="true"></span>
+          </div>
+
+          <!-- 进度条（点击可移动「视觉」进度，不触碰真实播放位置） -->
+          <div class="mp-cover__track" id="mpTrack" title="视觉进度（不读取真实播放位置）">
+            <div class="mp-cover__bar" id="mpBar"></div>
+          </div>
+          <div class="mp-cover__time" id="mpTime">00:00 / 00:00</div>
+
+          <!-- 传输按钮组（装饰件，不吃事件） -->
+          <div class="mp-cover__pad">
+            <span class="mp-cbtn" id="mpBtnPrev" title="上一首">
+              <span class="mp-glyph mp-glyph--prev"></span>
+            </span>
+            <span class="mp-cbtn" id="mpBtnPlay" title="播放（视觉）" aria-pressed="false">
+              <span class="mp-glyph mp-glyph--play" id="mpPlayGlyph"></span>
+            </span>
+            <span class="mp-cbtn" id="mpBtnNext" title="下一首">
+              <span class="mp-glyph mp-glyph--next"></span>
+            </span>
+          </div>
+
+          <!-- 热区：浮在装饰按钮之上，pointer-events:auto，吃掉点击穿透 -->
+          <button type="button" class="mp-hot mp-hot--prev" data-hot="prev" title="上一首（拦截点击）" aria-label="上一首"></button>
+          <button type="button" class="mp-hot mp-hot--play" data-hot="play" title="播放 / 暂停（拦截点击）" aria-label="播放或暂停"></button>
+          <button type="button" class="mp-hot mp-hot--next" data-hot="next" title="下一首（拦截点击）" aria-label="下一首"></button>
+
+        </div><!-- /mp-cover -->
+      </div><!-- /mp-stage -->
+    </div><!-- /mp-workspace -->
+
+    <!-- ---------- 状态栏 ---------- -->
+    <div class="statusbar">
+      <span class="statusbar__pane" id="mpStatusMain" style="width:118px;">就绪</span>
+      <span class="statusbar__pane" id="mpStatusMode" style="width:92px;">经典皮肤</span>
+      <span class="statusbar__pane statusbar__pane--grow" id="mpStatusTrack">夢消失 ～ Lost Dream · 上海アリス幻樂団</span>
+      <span class="statusbar__pane statusbar__pane--right" id="mpStatusNote">模拟进度</span>
+    </div>
+
+  </div><!-- /winMp -->
+
+  <!-- 隐藏的文件选择器（记事本「打开」用） -->
+  <input type="file" id="npFileInput" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr-only" tabindex="-1">
+
+  <!-- ====================================================================
        任务栏
        ==================================================================== -->
   <div class="taskbar" role="contentinfo">
@@ -510,6 +931,31 @@
           </svg>
         </span>
         <span class="task-btn__label">哔哩哔哩 · UID 11897608</span>
+      </button>
+
+      <button type="button" class="task-btn is-hidden" id="taskBtnNp" title="记事本 · 未命名.md">
+        <span class="task-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path d="M2.5 1.5h11v13h-11z" fill="#ffffff" stroke="#000000"/>
+            <path d="M2.5 1.5h11v2h-11z" fill="#c0c0c0" stroke="#000000"/>
+            <path d="M4.5 5.5h7M4.5 7.5h7M4.5 9.5h7M4.5 11.5h4" stroke="#000080"/>
+          </svg>
+        </span>
+        <span class="task-btn__label">记事本 · 未命名.md</span>
+      </button>
+
+      <button type="button" class="task-btn is-hidden" id="taskBtnMp" title="媒体播放器 · 夢消失 ～ Lost Dream">
+        <span class="task-btn__ico">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <rect x="1" y="2" width="14" height="11" fill="#c0c0c0" stroke="#000000"/>
+            <rect x="2" y="3" width="12" height="1.6" fill="#000080"/>
+            <rect x="2" y="6" width="12" height="3" fill="#ffffff" stroke="#000000"/>
+            <rect x="2.6" y="6.6" width="6" height="1.8" fill="#000080"/>
+            <rect x="2.6" y="10" width="3" height="2" fill="#dfdfdf" stroke="#000000"/>
+            <path d="M3.4 10.8l1.6.7-1.6.7z" fill="#000000"/>
+          </svg>
+        </span>
+        <span class="task-btn__label">媒体播放器</span>
       </button>
     </span>
 
@@ -556,6 +1002,15 @@
       <a class="startmenu__item" href="#" data-act="refresh">
         <i><svg viewBox="0 0 20 20" width="20" height="20"><path d="M16 10a6 6 0 1 1-2-4.5" fill="none" stroke="#008000" stroke-width="2"/><path d="M16.4 2v4h-4z" fill="#008000"/></svg></i>
         刷新数据
+      </a>
+      <span class="startmenu__sep"></span>
+      <a class="startmenu__item" href="#" data-act="open-notepad">
+        <i><svg viewBox="0 0 20 20" width="20" height="20"><path d="M3 2h14v16H3z" fill="#ffffff" stroke="#000000"/><path d="M3 2h14v2.6H3z" fill="#c0c0c0" stroke="#000000"/><path d="M5.6 8h8.8M5.6 11h8.8M5.6 14h5.4" stroke="#000080"/></svg></i>
+        记事本（Markdown）
+      </a>
+      <a class="startmenu__item" href="#" data-act="open-player">
+        <i><svg viewBox="0 0 20 20" width="20" height="20"><rect x="2" y="3" width="16" height="13" fill="#c0c0c0" stroke="#000000"/><rect x="3.4" y="4.4" width="13.2" height="2.2" fill="#000080"/><rect x="3.4" y="8" width="13.2" height="3.6" fill="#ffffff" stroke="#000000"/><rect x="4.2" y="9" width="7" height="1.8" fill="#000080"/><rect x="4.2" y="12.6" width="4" height="2.4" fill="#dfdfdf" stroke="#000000"/><path d="M5.4 13.4l2 1-2 1z" fill="#000000"/></svg></i>
+        媒体播放器
       </a>
       <span class="startmenu__sep"></span>
       <a class="startmenu__item" href="#" data-act="dialog-settings">
@@ -621,7 +1076,12 @@
 <!-- ======================================================================
      脚本：窗口管理 / 菜单 / 显示设置 / 数据加载与渲染
      兼容基线 EdgeHTML 18，无任何第三方依赖。
+     markdown.js 提供纯函数式 Markdown 解析器（挂载到 window.WinMD），
+     notepad.js 基于它实现记事本窗口，两侧均为独立模块、互不侵入。
      ====================================================================== -->
+<script src="assets/markdown.js"></script>
 <script src="assets/app.js"></script>
+<script src="assets/notepad.js"></script>
+<script src="assets/player.js"></script>
 </body>
 </html>

@@ -1,15 +1,22 @@
 @charset "utf-8";
 /* ==========================================================================
-   Windows Classic (Y2K / Windows 3.1 - Windows 2000) 主题样式表  v2
+   Windows Classic (Y2K / Windows 3.1 - Windows 2000) 主题样式表  v3
    --------------------------------------------------------------------------
    兼容目标：EdgeHTML 18（Edge 18 / Windows 10 1809）及以上
              同时兼容 Chromium Edge / Chrome / Firefox / Safari 现代版本
+
+   v3 变更：
+     · 桌面背景支持壁纸图片（cover / contain / 平铺三种适配模式）
+     · 新增记事本窗口（#winNp）与 Markdown 排版命名空间（.md）
+     · 多窗口并存：窗口宽度由各自的 --window-w 覆写
+     · 移动端自适应细化（720px / 420px 断点 + 矮视口处理）
 
    可用能力（Edge 18 已支持）：
      · CSS 自定义属性 var()  —— Edge 15+
      · Flexbox / CSS Grid    —— Grid 自 Edge 16+ 起无需前缀（含 gap）
      · calc() / vh / 渐变 / 变换 / 过渡 / 关键帧动画
      · position:sticky / object-fit —— Edge 16+
+     · 多重背景 + background-size: cover/contain —— 均早于 Edge 18
 
    注意：EdgeHTML 18 **不支持** ::-webkit-scrollbar（该伪元素自 Edge 79 /
    Chromium 内核起才可用）。本表仍保留相关规则，供 Chromium Edge 等内核生效；
@@ -24,6 +31,7 @@
      · :focus-visible / :is()   —— 需 Edge 86+
      · backdrop-filter          —— 本主题为不透明实心界面，无需该特性
      · aspect-ratio             —— 需 Edge 88+
+     · gap 之外的 Grid 新特性（如 subgrid）同样不使用
 
    Windows 系统色（ButtonFace 等）：
      FACE #c0c0c0  HILIGHT #ffffff  LIGHT #dfdfdf
@@ -54,6 +62,9 @@
   /* 桌面（默认经典灰，可切换） */
   --desktop: #c0c0c0;
 
+  /* 壁纸图片路径（可被 .wall-img 覆写；集中在此便于替换） */
+  --wallpaper: url("img/wallpaper.jpg");
+
   /* 文本 */
   --text:      #000000;
   --text-dim:  #404040;
@@ -68,6 +79,17 @@
 
   /* 尺寸 */
   --taskbar-h: 32px;
+  /* 桌面底边留给任务栏的净空。
+     .taskbar 是 position:fixed; bottom:0; height:var(--taskbar-h)，
+     也就是任务栏上沿恒好在「视口底 - taskbar-h」处。
+     因此最大化窗口想让底边贴住任务栏上沿，只需让出 taskbar-h，
+     再加 0px 都嫌多 —— 之前这里多加了 14px，窗口就被顶到任务栏上方
+     14px 处，屏幕上于是出现一条裸露的壁纸缝。
+
+     注意：--desk-gap 仍保留「+ 间距」的语义供别处（如桌面底边留白）使用，
+     最大化窗口专用值单独用 --max-gap 表达，二者互不牵连。 */
+  --desk-gap:  calc(var(--taskbar-h) + 14px);
+  --max-gap:   var(--taskbar-h);
   --window-w:  1020px;
   --side-w:    316px;
 }
@@ -218,21 +240,57 @@ code, pre, .mono { font-family: var(--mono); }
 
 /* ==========================================================================
    5. 桌面层
+   --------------------------------------------------------------------------
+   壁纸方案（class）与图片适配（class）分离，可自由组合：
+     .wall-img  → 使用 assets/img/wallpaper.jpg
+     .wallfit-cover   → background-size: cover   （填充，保持比例，裁切溢出）
+     .wallfit-contain → background-size: contain （适应，保持比例，留边不裁切）
+     .wallfit-tile    → background-repeat: repeat（平铺，原始尺寸重复）
+   注：EdgeHTML 18 支持 cover / contain / calc / 多重背景，无兼容性风险。
    ========================================================================== */
 .desktop {
   position: relative;
   min-height: 100vh;
-  padding-bottom: calc(var(--taskbar-h) + 14px);
+  padding-bottom: var(--desk-gap);
   background-color: var(--desktop);
+  background-repeat: no-repeat;
+  background-position: center center;
   overflow: hidden;
 }
-/* 壁纸变体 */
-.desktop.wall-teal { --desktop: #008080; }
-.desktop.wall-navy { --desktop: #000080; }
+
+/* ---------- 壁纸图片 ---------- */
+.desktop.wall-img { --desktop: #3a6ea5; }
+.desktop.wall-img {
+  background-image: var(--wallpaper);
+  background-color: #3a6ea5;
+}
+/* 网格纹理叠加（可选，与壁纸共存时使用多重背景） */
+.desktop.wall-img[data-texture="1"] {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, .10) 1px, transparent 1px),
+    var(--wallpaper);
+  background-size: 6px 6px, auto;
+  background-repeat: repeat, no-repeat;
+}
+
+/* ---------- 图片适配模式 ---------- */
+.desktop.wallfit-cover   { background-size: cover;   background-repeat: no-repeat; }
+.desktop.wallfit-contain { background-size: contain; background-repeat: no-repeat; }
+/* 平铺：以原始像素尺寸重复，透明区域露出底色 */
+.desktop.wallfit-tile {
+  background-size: auto;
+  background-repeat: repeat;
+  background-position: left top;
+}
+
+/* ---------- 纯色壁纸变体 ---------- */
+.desktop.wall-teal { --desktop: #008080; background-image: none; }
+.desktop.wall-navy { --desktop: #000080; background-image: none; }
 .desktop.wall-gray {
   --desktop: #c0c0c0;
   background-image: radial-gradient(#d4d4d4 1px, transparent 1px);
   background-size: 6px 6px;
+  background-repeat: repeat;
 }
 
 /* ---------- 桌面图标 ---------- */
@@ -286,6 +344,9 @@ code, pre, .mono { font-family: var(--mono); }
 
 /* ==========================================================================
    6. 窗口
+   --------------------------------------------------------------------------
+   页面上同时存在多个 .window（主窗口 #win、记事本 #winNp）。
+   各窗口的宽度通过自身的 --window-w 覆写，互不影响。
    ========================================================================== */
 .window {
   position: relative;
@@ -305,6 +366,70 @@ code, pre, .mono { font-family: var(--mono); }
 .window.is-inactive .title-bar {
   background: linear-gradient(90deg, var(--title-off-from), var(--title-off-to));
 }
+
+/* --------------------------------------------------------------------------
+   最大化：用「弹性填充」替代「魔法常量」
+   --------------------------------------------------------------------------
+   旧实现给 .workspace 写死 height: calc(100vh - 196px)，其中 196 是把
+   标题栏/菜单栏/工具栏/状态栏/内边距全部估算进去的一个常量。问题是：
+
+     · 工具栏高度并非固定 —— 窄屏下工具按钮换行会从 47px 涨到 90px+；
+     · 任务栏高度会在 ≤720px 断点从 32px 变为 30px；
+     · 两个常量互不知情，于是任何一处变化都会在窗口底部漏出一条空隙。
+
+   正确做法是让浏览器自己算：把窗口变成纵向 flex 容器，
+   固定部件（标题栏/菜单栏/工具栏/状态栏）用 flex:none 保持自身高度，
+   唯一可伸缩的 .workspace 用 flex:1 + min-height:0 吃掉剩余空间。
+   这样无论有多少固定部件、它们多高，工作区都恰好填满，
+   不需要、也不可能出现任何魔法数字。
+
+   高度基准用 100vh 减 --max-gap（即任务栏高度）：任务栏 fixed 贴在视口底，
+   上沿就在 100vh - taskbar-h，窗口让出这一段后底边正好压住任务栏上沿，
+   中间不留任何缝隙。仍然遵守「标题栏 + 各部件最小高度」的自然下限
+   （min-height 兜底，避免极矮视口下工作区被压成负尺寸）。
+   -------------------------------------------------------------------------- */
+.window.is-maxed {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--max-gap));
+  min-height: 320px;
+}
+.window.is-maxed > .title-bar  { flex: none; }
+.window.is-maxed > .menubar    { flex: none; }
+.window.is-maxed > .toolbar,
+.window.is-maxed > .np-toolbar { flex: none; }
+.window.is-maxed > .statusbar  { flex: none; }
+
+/* 最大化时的唯一伸缩项：吃掉全部剩余高度，且允许被压缩到 0 以上 */
+.window.is-maxed > .workspace {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* 记事本最大化：同上，只是基类名不同 */
+.window--np.is-maxed > .np-workspace {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* 播放器最大化：工作区同样是唯一伸缩项 */
+.window--mp.is-maxed > .mp-workspace {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* ---------- 记事本窗口尺寸 ---------- */
+.window--np {
+  --window-w: 900px;
+  margin: 46px auto 26px;
+}
+/* 注：记事本最大化时的尺寸由上方「最大化：用弹性填充替代魔法常量」统一处理 */
 
 /* ---------- 标题栏 ---------- */
 .title-bar {
@@ -584,10 +709,7 @@ code, pre, .mono { font-family: var(--mono); }
   overflow-y: scroll;
   overflow-x: hidden;
 }
-.window.is-maxed .workspace {
-  height: calc(100vh - 196px);
-  max-height: none;
-}
+/* 注：.window.is-maxed .workspace 的弹性尺寸见上方第 6 节「最大化」区块 */
 
 /* 两栏：Grid 布局 */
 .ws-inner {
@@ -1417,30 +1539,577 @@ code, pre, .mono { font-family: var(--mono); }
 }
 
 /* ==========================================================================
-   15. 滚动条（渐进增强）
+   15. 记事本窗口（Markdown 渲染 / 源码编辑）
+   --------------------------------------------------------------------------
+   面板切换完全由 CSS Grid 的列模板驱动，JS 只负责切换根节点 class：
+     .np-split            → 单栏（仅渲染面板；源码面板 display:none）
+     .np-split.is-source  → 单栏（仅源码面板）
+     .np-split.is-split   → 双栏（源码 1fr | 渲染 1fr），窄屏自动降为上下两行
+   这样避免 JS 参与布局计算，行为可预测且易扩展。
+   ========================================================================== */
+.np-workspace {
+  /* 记事本工作区比主窗口略高，便于阅读长文档 */
+  height: 560px;
+  max-height: calc(100vh - 170px);
+  background: var(--face);
+}
+
+.np-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+}
+.np-split.is-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.np-split.is-split .np-pane + .np-pane { border-left: 1px solid var(--shadow); }
+
+.np-pane {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.np-pane--source { display: none; }
+.np-split.is-source .np-pane--source,
+.np-split.is-split  .np-pane--source { display: flex; }
+.np-split.is-source .np-pane--preview { display: none; }
+
+/* ---------- 源码编辑区 ---------- */
+.np-pane--source { position: relative; background: #fff; }
+
+/* 行号槽：与编辑区同一行高，随编辑区同步滚动 */
+.np-lineno {
+  flex: none;
+  width: 38px;
+  height: 100%;
+  padding: 8px 6px 8px 0;
+  background: var(--face);
+  border-right: 1px solid;
+  border-color: var(--shadow) var(--hilight) var(--hilight) var(--shadow);
+  color: var(--text-dim);
+  font: 12px/18px var(--mono);
+  text-align: right;
+  white-space: pre;
+  overflow: hidden;
+  user-select: none;
+}
+.np-split.no-lineno .np-lineno { display: none; }
+
+.np-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 8px 10px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: #fff;
+  color: var(--text);
+  font: 12px/18px var(--mono);
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+}
+.np-editor::placeholder { color: #909090; }
+
+.np-pane--preview {
+  padding: 8px 10px;
+  background: #fff;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   15b. Markdown 渲染排版（.md 作用域）
+   --------------------------------------------------------------------------
+   独立的排版命名空间，不污染主窗口既有元素；
+   表格虽不在必需语法清单内，仍一并支持以提升实用性。
+   ========================================================================== */
+.md {
+  color: var(--text);
+  font: 13px/1.7 var(--font);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.md > *:first-child { margin-top: 0; }
+.md > *:last-child  { margin-bottom: 0; }
+
+/* ---------- 标题 ---------- */
+.md h1, .md h2, .md h3,
+.md h4, .md h5, .md h6 {
+  margin: 16px 0 8px;
+  font-weight: bold;
+  line-height: 1.35;
+}
+.md h1 {
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--shadow);
+  font-size: 22px;
+}
+.md h2 {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--light);
+  font-size: 18px;
+}
+.md h3 { font-size: 16px; }
+.md h4 { font-size: 14px; }
+.md h5 { font-size: 13px; color: var(--text-dim); }
+.md h6 { font-size: 12px; color: var(--text-mute); }
+
+/* ---------- 段落 / 分隔线 ---------- */
+.md p { margin: 8px 0; }
+.md hr {
+  height: 0;
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--shadow);
+  border-bottom: 1px solid var(--hilight);
+}
+
+/* ---------- 列表 ---------- */
+.md ul, .md ol { margin: 8px 0; padding-left: 26px; }
+.md ul { list-style: disc; }
+.md ol { list-style: decimal; }
+.md li { margin: 3px 0; }
+.md ul ul, .md ol ol, .md ul ol, .md ol ul { margin: 3px 0; }
+.md ul ul     { list-style: circle; }
+.md ul ul ul  { list-style: square; }
+.md li > p    { margin: 3px 0; }
+
+/* 段落内直接换行（非列表）保留视觉换行 */
+.md .md-br { display: block; height: 0; }
+
+/* ---------- 行内排版 ---------- */
+.md strong { font-weight: bold; }
+.md em     { font-style: italic; }
+.md del    { color: var(--text-dim); }
+.md a { color: var(--link); text-decoration: underline; }
+.md a:visited { color: var(--link-vis); }
+.md a:hover { background: var(--hl-bg); color: var(--hl-fg); text-decoration: none; }
+
+/* ---------- 行内代码 ---------- */
+.md code {
+  padding: 1px 4px;
+  background: #f2f2f2;
+  border: 1px solid #d0d0d0;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+/* ---------- 代码块 ---------- */
+.md pre {
+  position: relative;
+  margin: 10px 0;
+  padding: 22px 10px 10px;
+  background: #ffffff;
+  border: 1px solid;
+  border-color: var(--shadow) var(--hilight) var(--hilight) var(--shadow);
+  box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--light);
+  overflow-x: auto;
+}
+.md pre code {
+  display: block;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre;
+}
+/* 语言标识：左上角小标签（Windows 标题栏配色） */
+.md pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  padding: 0 5px;
+  background: linear-gradient(90deg, var(--title-from), var(--title-to));
+  color: #fff;
+  font: 10px/14px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* ---------- 引用块 ---------- */
+.md blockquote {
+  margin: 10px 0;
+  padding: 6px 10px;
+  background: #ffffe1;
+  border-left: 4px solid var(--hl-bg);
+  border-top: 1px solid #e0e0b0;
+  border-bottom: 1px solid #e0e0b0;
+  color: #303030;
+}
+.md blockquote > *:first-child { margin-top: 0; }
+.md blockquote > *:last-child  { margin-bottom: 0; }
+
+/* ---------- 图片 ---------- */
+.md img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0;
+  padding: 2px;
+  background: var(--face);
+  border: 1px solid;
+  border-color: var(--shadow) var(--hilight) var(--hilight) var(--shadow);
+}
+.md .md-imgfail {
+  display: block;
+  margin: 10px 0;
+  padding: 14px 10px;
+  background: #f7f7f7;
+  border: 1px dashed var(--shadow);
+  color: var(--text-mute);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ---------- 表格（附加支持） ---------- */
+.md .md-tablewrap { margin: 10px 0; overflow-x: auto; }
+.md table {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--shadow);
+  font-size: 12px;
+}
+.md th, .md td {
+  padding: 4px 8px;
+  border: 1px solid #c8c8c8;
+  text-align: left;
+  vertical-align: top;
+}
+.md th {
+  background: var(--face);
+  font-weight: bold;
+  white-space: nowrap;
+}
+.md tbody tr:nth-child(even) { background: #f7f7f7; }
+
+/* ==========================================================================
+   15c. 媒体播放器窗口（iframe + Windows 3.1 视觉覆盖层）
+   --------------------------------------------------------------------------
+   设计要点：
+     · iframe 跨域 → 无法改动其内部 DOM，只能「盖」不能「改」；
+     · 覆盖层 .mp-cover 与 iframe 同尺寸、同位置，像素级覆盖原生控件区；
+     · 装饰件一律 pointer-events:none（纯视觉，不吃事件）；
+     · 热区 .mp-hot 用 pointer-events:auto 吃掉点击，阻止穿透；
+     · 舞台 .mp-stage 居中摆放固定尺寸的 iframe，两侧留经典灰底，
+       避免把 330×86 的 iframe 拉伸变形。
+   ========================================================================== */
+.window--mp {
+  --window-w: 430px;
+  margin: 78px auto 26px;
+}
+/* 注：播放器最大化时的尺寸由上方「最大化：用弹性填充替代魔法常量」统一处理 */
+
+/* ---------- 舞台：承载 iframe 与覆盖层 ---------- */
+.mp-workspace {
+  background: var(--face);
+  /* 正常态：给舞台一个够用的固定高度（iframe 86px + 上下留白 + 面板） */
+  height: 236px;
+  max-height: calc(100vh - 190px);
+}
+.mp-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--face);
+  overflow: hidden;
+}
+
+/* ---------- 真实 iframe：固定 330×86，绝对定位以精确对齐覆盖层 ---------- */
+.mp-frame {
+  position: absolute;
+  /* left/top 由 JS updateStageMetrics() 居中计算后写入 */
+  left: 0;
+  top: 0;
+  width: 330px;
+  height: 86px;
+  border: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+/* ---------- 覆盖层：与 iframe 完全同框 ---------- */
+.mp-cover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 330px;
+  height: 86px;
+  z-index: 2;
+  /* 默认整层不吃事件，保证装饰件不拦截；只有 .mp-hot 例外 */
+  pointer-events: none;
+  background: linear-gradient(180deg, #dfdfdf 0%, #c0c0c0 100%);
+  border: 1px solid;
+  border-color: var(--light) var(--dark) var(--dark) var(--light);
+  box-shadow: inset 1px 1px 0 var(--hilight), inset -1px -1px 0 var(--shadow);
+  overflow: hidden;
+}
+/* 关闭皮肤：整层隐藏，回落到网易云原生控件 */
+.window--mp.no-skin .mp-cover { display: none; }
+
+/* ---------- 覆盖层内部：第一行（标题 / 状态灯） ---------- */
+.mp-cover__top {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 4px;
+  background: rgba(255, 255, 255, .38);
+  border-bottom: 1px solid var(--shadow);
+}
+.mp-cover__icon {
+  flex: none;
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+}
+.mp-cover__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: bold 11px/1 var(--font);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mp-cover__led {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: 4px;
+  background: #404040;
+  border: 1px solid;
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+}
+.window--mp.is-playing .mp-cover__led { background: #00a000; }
+
+/* ---------- 覆盖层内部：进度条 ---------- */
+.mp-cover__track {
+  position: relative;
+  height: 16px;
+  margin: 5px 6px 0;
+  background: #ffffff;
+  border: 1px solid;
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+  cursor: pointer;
+  /* 进度槽是「可交互」的（仅移动视觉进度），单独开事件 */
+  pointer-events: auto;
+}
+.mp-cover__bar {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 0;
+  background: linear-gradient(180deg, #000080 0%, #1084d0 55%, #000080 100%);
+}
+.mp-cover__time {
+  margin: 3px 6px 0;
+  font: 10px/1 var(--mono);
+  color: var(--text-dim);
+  text-align: right;
+  white-space: nowrap;
+}
+.window--mp.no-skin .mp-cover__time { visibility: hidden; }
+
+/* ---------- 覆盖层内部：传输按钮组（视觉装饰，不吃事件） ---------- */
+.mp-cover__pad {
+  display: flex;
+  align-items: center;
+  margin: 4px 6px 0;
+  pointer-events: none;
+}
+.mp-cbtn {
+  flex: none;
+  width: 26px;
+  height: 17px;
+  margin-right: 3px;
+  background: var(--face);
+  border: 1px solid;
+  border-color: var(--light) var(--dark) var(--dark) var(--light);
+  box-shadow: inset 1px 1px 0 var(--hilight), inset -1px -1px 0 var(--shadow);
+  /* 装饰按钮不吃事件，真正的可点击热区浮在其上 */
+  pointer-events: none;
+  position: relative;
+}
+.mp-cbtn.is-pressed {
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+  padding-top: 1px;
+  padding-left: 1px;
+}
+
+/* 按钮字形：用 border 三角形拼，避免引入图标字体。
+   注意：这里刻意不用 clip-path —— 它是 Edge 79+ 才支持的属性，
+   在目标基线 EdgeHTML 18 上会完全失效（三角形退化成实心方块）。
+   border 三角形自 CSS1 起就可用，是唯一能覆盖到 Edge 18 的画法。
+
+   居中策略：.mp-glyph 是一个 0×0 的定位点，靠 transform 的
+   translate(-50%,-50%) 把「本身」居中；但 prev/next 还多带一根竖条，
+   整体宽度大于三角本身，所以用 translate 的 x 分量做视觉补偿，
+   而不是用 margin（margin 会同时移动绝对定位的参照原点，
+   使 ::before 的偏移量跟着漂移，难以推算）。 */
+.mp-glyph {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  width: 0;
+  height: 0;
+  /* 垂直居中：字形可视高度恒为 10px（上下各 5px），上移 5px 即为居中 */
+  margin-top: -5px;
+}
+/* 播放：右向三角，水平居中后再右移 1px 视觉平衡 */
+.mp-glyph--play {
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid #000000;
+  margin-left: -3px;
+}
+/* 暂停：双竖线，宽 8px 高 10px，水平居中 */
+.mp-glyph--pause {
+  width: 8px;
+  height: 10px;
+  border-left: 3px solid #000000;
+  border-right: 3px solid #000000;
+  margin-left: -4px;
+}
+/* 上一首 "|◀"。
+   设按钮宽 26px，left:50% 使 0×0 原点落在按钮中心（距左 13px）。
+   字形可视宽 12px（竖条 2 + 间隙 2 + 三角 8），要居中则从距左 7px 起：
+       竖条  距左 7..9
+       三角  距左 11..19
+   三角由 border-right:8px 构成，其 border box 左边缘即「三角视觉左边缘」，
+   因此三角 border box 需落在距左 11px → 相对原点偏移 = 11 - 13 = -2px。
+   竖条的 left 相对「padding box 左边缘」（= border box 左边缘，因 padding:0），
+   故竖条 left = 7 - 11 = -4px。 */
+.mp-glyph--prev {
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 8px solid #000000;
+  margin-left: -2px;
+}
+.mp-glyph--prev::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -5px;
+  width: 2px;
+  height: 10px;
+  background: #000000;
+}
+/* 下一首 "▶|"，镜像：
+       三角  距左 7..15   （border-left:8px，border box 左边缘 = 视觉左边缘）
+       竖条  距左 17..19
+   三角相对原点偏移 = 7 - 13 = -6px；
+   竖条相对三角 border box 左边缘 = 17 - 7 = 10px。 */
+.mp-glyph--next {
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid #000000;
+  margin-left: -6px;
+}
+.mp-glyph--next::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: -5px;
+  width: 2px;
+  height: 10px;
+  background: #000000;
+}
+
+/* ---------- 热区：浮在装饰按钮之上，吃掉点击 ---------- */
+.mp-hot {
+  position: absolute;
+  z-index: 3;
+  pointer-events: auto;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: default;
+  outline: none;
+  /* 键盘可达的可见焦点 */
+}
+.mp-hot:focus { box-shadow: 0 0 0 1px #000080 inset; }
+.mp-hot.is-pressed {
+  background: rgba(0, 0, 128, .10);
+}
+
+/* 热区的几何：与 .mp-cover__pad 中三个按钮的位置一一对应。
+   pad 起点 margin-left:6px；每个按钮宽 26px + 间距 3px。
+     prev : x = 6                    , w = 26
+     play : x = 6 + 26 + 3 = 35      , w = 26
+     next : x = 6 + (26+3)*2 = 64    , w = 26
+   y 由 cover__pad 的 margin-top(4px) + 上方各行高度决定，
+   这里用一个稳妥的常量：top 61px、高 17px（覆盖层总高 86px）。 */
+.mp-hot--prev { left: 6px;  top: 61px; width: 26px; height: 17px; }
+.mp-hot--play { left: 35px; top: 61px; width: 26px; height: 17px; }
+.mp-hot--next { left: 64px; top: 61px; width: 26px; height: 17px; }
+
+/* ---------- 播放器工具栏的「皮肤」按钮 ---------- */
+.window--mp .tb-btn.is-on {
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+}
+
+/* ---------- 窄屏：覆盖层整体等比缩放，避免溢出 ---------- */
+@media (max-width: 480px) {
+  .window--mp { --window-w: 100%; }
+  .mp-workspace { height: 220px; }
+}
+@media (max-height: 520px) {
+  .mp-workspace { height: 180px; }
+}
+
+/* ==========================================================================
+   16. 滚动条（渐进增强）
    --------------------------------------------------------------------------
    EdgeHTML 18 不支持自定义滚动条，回退为系统原生样式；
    Chromium Edge / Chrome / Safari 走 ::-webkit-scrollbar，
    Firefox 走 scrollbar-color。
    ========================================================================== */
-.workspace {
+.workspace,
+.md-pane-scroll,
+.np-editor,
+.np-pane--preview,
+.md pre,
+.md .md-tablewrap {
   scrollbar-color: var(--face) #f0f0f0;
   scrollbar-width: thin;
 }
-.workspace::-webkit-scrollbar { width: 16px; height: 16px; }
-.workspace::-webkit-scrollbar-track {
+.workspace::-webkit-scrollbar,
+.np-editor::-webkit-scrollbar,
+.np-pane--preview::-webkit-scrollbar { width: 16px; height: 16px; }
+.workspace::-webkit-scrollbar-track,
+.np-editor::-webkit-scrollbar-track,
+.np-pane--preview::-webkit-scrollbar-track {
   background: #f0f0f0;
   background-image: repeating-conic-gradient(#ffffff 0 25%, #dfdfdf 0 50%);
   background-size: 4px 4px;
 }
-.workspace::-webkit-scrollbar-thumb {
+.workspace::-webkit-scrollbar-thumb,
+.np-editor::-webkit-scrollbar-thumb,
+.np-pane--preview::-webkit-scrollbar-thumb {
   background: var(--face);
   border: 1px solid;
   border-color: var(--hilight) var(--dark) var(--dark) var(--hilight);
   box-shadow: inset 1px 1px 0 var(--light), inset -1px -1px 0 var(--shadow);
 }
-.workspace::-webkit-scrollbar-thumb:hover { background: #cacaca; }
-.workspace::-webkit-scrollbar-button {
+.workspace::-webkit-scrollbar-thumb:hover,
+.np-editor::-webkit-scrollbar-thumb:hover,
+.np-pane--preview::-webkit-scrollbar-thumb:hover { background: #cacaca; }
+.workspace::-webkit-scrollbar-button,
+.np-editor::-webkit-scrollbar-button,
+.np-pane--preview::-webkit-scrollbar-button {
   display: block;
   height: 16px;
   background: var(--face);
@@ -1449,18 +2118,38 @@ code, pre, .mono { font-family: var(--mono); }
 }
 
 /* ==========================================================================
-   16. 响应式（Grid 重排）
+   17. 响应式（Grid 重排 + 移动端适配）
    ========================================================================== */
+
+/* --- 桌面图标让位 --- */
 @media (max-width: 1180px) {
   /* 窄屏隐藏桌面图标，避免与居中窗口重叠 */
   .desk-icons { display: none; }
 }
+
+/* --- 平板 / 小笔记本 --- */
 @media (max-width: 1060px) {
   .window { width: 100%; margin-left: 0; margin-right: 0; }
   .ws-inner { grid-template-columns: minmax(0, 1fr); }
   .col-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* 记事本并排模式在窄屏下改为上下两行，避免每栏过窄无法阅读 */
+  .np-split.is-split { grid-template-columns: minmax(0, 1fr); }
+  .np-split.is-split .np-pane + .np-pane {
+    border-left: 0;
+    border-top: 1px solid var(--shadow);
+  }
+  .np-split.is-split .np-pane { height: 50%; }
+  .np-split.is-split .np-pane--source { min-height: 140px; }
 }
+
+/* --- 手机 --- */
 @media (max-width: 720px) {
+  :root {
+    /* 收窄任务栏与窗口边距，为内容让出横向空间 */
+    --taskbar-h: 30px;
+  }
+
   .col-side { grid-template-columns: minmax(0, 1fr); }
   .video { grid-template-columns: minmax(0, 1fr); }
   .video__thumb { width: 100%; height: 158px; }
@@ -1470,10 +2159,111 @@ code, pre, .mono { font-family: var(--mono); }
   .addrbar__field { display: none; }
   .taskbar__tasks { flex: 1 1 auto; }
   .statusbar__pane--hide-sm { display: none; }
+
+  /* 窗口：减小上下留白，贴近移动端全宽阅读 */
+  .window { margin: 10px auto; }
+  .window--np { margin: 12px auto 10px; }
+
+  /* 工作区高度改为随视口自适应，避免固定高度在小屏上过高/过矮 */
+  .workspace,
+  .np-workspace {
+    height: auto;
+    max-height: none;
+    min-height: 300px;
+  }
+  /* 播放器舞台在窄屏下自动收缩，不必撑到 300px */
+  .mp-workspace {
+    height: auto;
+    max-height: none;
+    min-height: 170px;
+  }
+  /* 最大化时不再覆写高度：弹性填充由基础规则负责，且 min-height 必须归零，
+     否则小屏下 min-height:300px 会顶开容器、重新制造缺口。 */
+  .window.is-maxed > .workspace,
+  .window--np.is-maxed > .np-workspace,
+  .window--mp.is-maxed > .mp-workspace {
+    min-height: 0;
+    height: auto;
+  }
+
+  /* 记事本：工具栏允许换行，行号槽收窄，代码块横向滚动 */
+  .np-workspace { min-height: 260px; }
+  .np-lineno { width: 26px; padding: 6px 4px 6px 0; font-size: 11px; }
+  .np-editor  { padding: 6px 8px; font-size: 12px; }
+  .np-pane--preview { padding: 8px; }
+  .md { font-size: 13.5px; }
+  .md h1 { font-size: 19px; }
+  .md h2 { font-size: 16.5px; }
+  .md h3 { font-size: 15px; }
+  .md pre { padding: 20px 8px 8px; }
+  .md pre code { font-size: 11.5px; }
+  .md table { font-size: 11.5px; }
+  .md th, .md td { padding: 3px 6px; }
+
+  /* 标题栏按钮在触屏下增大点击热区 */
+  .title-btn { width: 20px; height: 16px; }
+  .title-bar { height: 22px; }
+
+  /* 任务栏按钮更紧凑，保证两个窗口按钮都能显示 */
+  .task-btn { flex: 0 1 140px; padding: 0 6px; font-size: 11px; }
+  .start-btn { padding: 0 5px; }
+  .tray__icons { display: none; }
+}
+
+/* --- 超窄屏（竖屏手机） --- */
+@media (max-width: 420px) {
+  .window { margin: 6px auto; }
+  .window--np { margin: 8px auto 6px; }
+
+  /* 标题栏文字过长时优先让位给按钮 */
+  .title-bar__text { font-size: 11px; }
+
+  /* 工具栏横向滚动而非换行，保持单行高度可预期 */
+  .toolbar { overflow-x: auto; }
+  .tb-btn { flex: none; }
+
+  /* 状态栏只保留关键格 */
+  .statusbar__pane--right { display: none; }
+
+  /* 记事本并排模式下源码面板进一步压低 */
+  .np-split.is-split .np-pane--source { min-height: 110px; }
+
+  /* Markdown 内边距收紧 */
+  .md ul, .md ol { padding-left: 20px; }
+  .md h1 { font-size: 17.5px; }
+}
+
+/* --- 横屏矮视口：非最大化时限制工作区高度，避免窗口超出屏幕 ---
+   最大化状态不在此处覆写：它由 flex 弹性填充 + 100vh 基准处理，
+   在这里再写 min-height 反而会把容器顶开、重新产生缺口。 */
+@media (max-height: 520px) {
+  .workspace,
+  .np-workspace {
+    height: calc(100vh - 170px);
+    min-height: 180px;
+    max-height: none;
+  }
+  /* 播放器舞台只需容纳 86px 的 iframe，矮视口下给一个更小的下限 */
+  .mp-workspace {
+    height: auto;
+    min-height: 130px;
+    max-height: none;
+  }
+  .window.is-maxed > .workspace,
+  .window--np.is-maxed > .np-workspace {
+    height: auto;
+    min-height: 0;
+  }
+  .window--mp.is-maxed > .mp-workspace {
+    height: auto;
+    min-height: 0;
+  }
+  /* 极矮视口下压缩最大化窗口自身的最小高度，避免内容被裁切 */
+  .window.is-maxed { min-height: 220px; }
 }
 
 /* ==========================================================================
-   17. 打印
+   18. 打印
    ========================================================================== */
 @media print {
   .desk-icons, .taskbar, .startmenu, .toast,
@@ -1483,9 +2273,12 @@ code, pre, .mono { font-family: var(--mono); }
     border: 0;
     box-shadow: none;
   }
-  .workspace {
+  .workspace,
+  .np-workspace {
     height: auto;
     max-height: none;
     overflow: visible;
   }
+  /* 打印时始终以渲染视图输出，忽略源码面板 */
+  .np-pane--source { display: none !important; }
 }
