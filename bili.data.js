@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-03T12:33:49+08:00
+ * 生成时间：2026-10-03T13:15:42+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
-  "ok": false,
-  "stale": true,
-  "generated_at": "2026-10-03T12:33:49+08:00",
-  "generated_at_ts": 1791002029,
+  "ok": true,
+  "stale": false,
+  "generated_at": "2026-10-03T13:15:42+08:00",
+  "generated_at_ts": 1791004542,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,12 +28,12 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11129,
+    "fans": 11131,
     "following": 1607
   },
   "stat": {
-    "play": null,
-    "like": null,
+    "play": 2251085,
+    "like": 250992,
     "video_count": 168
   },
   "partitions": [
@@ -72,8 +72,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 9752,
-      "comment": 62,
+      "play": 12746,
+      "comment": 68,
       "duration": "01:37"
     },
     {
@@ -84,7 +84,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 111862,
+      "play": 112238,
       "comment": 158,
       "duration": "01:19"
     },
@@ -96,7 +96,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 7943,
+      "play": 7947,
       "comment": 46,
       "duration": "02:44"
     },
@@ -108,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1GW8M69EL6",
       "pubdate": 1787292260,
       "pubdate_text": "2026-08-21 14:04",
-      "play": 5226,
+      "play": 5227,
       "comment": 68,
       "duration": "00:50"
     },
@@ -120,7 +120,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1rJ8j6bEVS",
       "pubdate": 1787109631,
       "pubdate_text": "2026-08-19 11:20",
-      "play": 19957,
+      "play": 19970,
       "comment": 67,
       "duration": "00:32"
     }
@@ -176,7 +176,6 @@ window.BILI_DATA = {
     }
   ],
   "errors": [
-    "投稿列表(arc/search)：HTTP 412 Precondition Failed {\"code\":-412,\"message\":\"request was banned\",\"ttl\":1}",
-    "投稿列表(arc/search 旧版)：接口返回 code=-799 message=请求过于频繁，请稍后再试"
+    "投稿列表(arc/search)：HTTP 412 Precondition Failed {\"code\":-412,\"message\":\"request was banned\",\"ttl\":1}"
   ]
 };
