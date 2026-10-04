@@ -134,27 +134,23 @@
   /* ======================================================================
      5. 窗口显示 / 隐藏 / 最大化
      ----------------------------------------------------------------------
-     与 app.js 共用 window.WinWM 契约完成「活动窗口」互斥：
-       · 本窗口激活 → 主窗口转 is-inactive
-       · 本窗口退场 → 若主窗口仍可见，则交还活动状态
-     这样任务栏按钮的语义才正确：点非活动的可见窗口 = 激活，非最小化。
+     显隐 / 状态机 / Z 序 / 任务栏联动 / 位置持久化统一交给 window.WinWM；
+     本模块只负责「内容与几何」（拖动、最大化、pinToPixels、编辑器）。
      ====================================================================== */
   function wm() {
     return global.WinWM || null;
   }
 
-  /* 统一的活动态设置：窗口标题栏 + 任务栏按钮高亮必须同步，
-     否则任务栏会出现「两个按钮同时高亮」的错误观感。 */
+  /* 只负责标题栏渐变；任务栏高亮由 WinWM.syncTaskBtn 统一处理，
+     避免两处重复切换导致「两个按钮同时高亮」。 */
   function setInactive(on) {
     winNp.classList.toggle('is-inactive', !!on);
-    if (on) npTaskBtn.classList.remove('is-active');
-    else npTaskBtn.classList.add('is-active');
   }
 
   function activate() {
     var m = wm();
-    if (m && typeof m.setActive === 'function') {
-      m.setActive('winNp');           // 管理器统一处理所有已登记窗口
+    if (m && typeof m.focus === 'function') {
+      m.focus('winNp');
     } else {
       /* 降级：管理器未就绪时自行处理 */
       setInactive(false);
@@ -166,37 +162,47 @@
   }
 
   function deactivate() {
+    /* 只切自身的视觉非活动态。
+       不再直接改写 WinWM.activeId —— activeId 归 WinWM 独占管理，
+       由 releaseFocus 决定「退场后谁是新的活动窗口」。
+       此前在此处把 activeId 置 null，会导致 hide() 里随后的 releaseFocus
+       因 activeId!==fromId 而提前返回，主窗口明明可见却拿不到焦点。 */
     setInactive(true);
-    var m = wm();
-    if (m && m.activeId === 'winNp') m.activeId = null;
   }
 
   function show() {
     st.open = true;
+    var m = wm();
+    if (m && typeof m.setState === 'function') m.setState('winNp', 'normal');
     winNp.classList.remove('is-hidden');
-    /* 任务栏按钮必须同步出现，否则无法再从任务栏唤回窗口 */
-    npTaskBtn.classList.remove('is-hidden');
-    npTaskBtn.title = '记事本 · ' + st.fileName;
     winNp.setAttribute('aria-hidden', 'false');
-    /* 首次显示时锚定到桌面顶部：static + margin:auto 会让窗口排在文档流里，
-       视口偏矮时可能落在首屏之外（窗口已打开却看不见，需向下滚动）。
-       转绝对定位后与文档流解耦，位置只取决于视口，与页面滚动无关。 */
-    if (!st.pinned) {
+    /* 位置记忆：优先套用上次保存的几何，否则退回默认锚定 */
+    if (m && typeof m.applyRect === 'function') {
+      m.applyRect('winNp', function () {
+        if (!st.pinned) { pinToPixels(); st.pinned = true; }
+      });
+    } else if (!st.pinned) {
       pinToPixels();
       st.pinned = true;
     }
+    st.pinned = true;
     void winNp.offsetWidth;               // 强制回流，保证过渡生效
     winNp.style.opacity = '1';
     winNp.style.transform = 'none';
     activate();
     setText('npStatusMain', '就绪');
     syncTaskBtnLabel();
+    if (m && typeof m.persist === 'function') m.persist('winNp');
   }
 
   function hide(mode) {
     if (!st.open) return;
     st.open = false;
     closeMenus();
+
+    var m = wm();
+    /* 记录当前 normal 几何，供位置记忆与最大化还原使用 */
+    if (m && typeof m.captureRect === 'function') m.captureRect('winNp');
 
     var optAnim = $('optAnim');
     var animate = !!optAnim && optAnim.checked && !reduceMotion;
@@ -213,21 +219,24 @@
       winNp.style.transform =
         'translate(' + dx + 'px, ' + dy + 'px) scale(' + sx + ', ' + sy + ')';
       winNp.style.opacity = '0';
-      setTimeout(function () { winNp.classList.add('is-hidden'); }, 240);
+      setTimeout(function () {
+        if (st.open) return;                 // 期间被重新唤醒则放弃隐藏
+        winNp.classList.add('is-hidden');
+      }, 240);
     } else {
       winNp.classList.add('is-hidden');
     }
 
-    /* 任务栏按钮随窗口一起消失，避免留下无对应窗口的「幽灵按钮」 */
-    npTaskBtn.classList.add('is-hidden');
-
     winNp.setAttribute('aria-hidden', 'true');
     deactivate();
 
-    /* 本窗口退场后，若主窗口仍可见则把活动状态交还给它 */
-    var m = wm();
-    if (m && typeof m.setActive === 'function' && m.isVisible && m.isVisible('win')) {
-      m.setActive('win');
+    /* 状态机：min 保留任务栏按钮，close 移除（由 WinWM 统一同步） */
+    if (m && typeof m.setState === 'function') {
+      m.setState('winNp', mode === 'close' ? 'closed' : 'minimized');
+      if (typeof m.releaseFocus === 'function') m.releaseFocus('winNp');
+      if (typeof m.persist === 'function') m.persist('winNp');
+    } else {
+      npTaskBtn.classList.add('is-hidden');
     }
 
     setText('npStatusMain', mode === 'close' ? '已关闭' : '已最小化');
@@ -241,10 +250,10 @@
   }
 
   function toggle() {
-    /* 与主窗口同一套语义：
-       · 已隐藏            → 显示并激活
-       · 可见但非活动窗口  → 只激活（置顶），不隐藏
-       · 可见且已活动      → 最小化 */
+    /* 与主窗口同一套语义（由 WinWM 状态机统一判定）：
+       · 已隐藏/已关闭            → 显示并激活
+       · 可见但非活动窗口         → 只激活（置顶），不隐藏
+       · 可见且已活动             → 最小化 */
     if (!st.open) { show(); return; }
     var m = wm();
     if (m && m.activeId !== 'winNp') { activate(); return; }
@@ -266,6 +275,9 @@
      照搬就会「打开即不可见」。这里重新按「桌面水平居中 + 垂直夹在视口内」
      计算，保证任意滚动位置、任意视口高度下窗口都出现在首屏。 */
   function pinToPixels() {
+    /* 修正 B1：已转为绝对定位（含拖动过）时不得重算坐标，
+       否则每次 dragStart / show 都会把窗口重置回默认锚点。 */
+    if (winNp.style.position === 'absolute') return;
     var dr = $('desktop').getBoundingClientRect();
     var wr = winNp.getBoundingClientRect();
     var w = wr.width || 900;
@@ -300,13 +312,16 @@
 
   function toggleMax() {
     var desktop = $('desktop');
+    var m = wm();
     if (!st.maxed) {
       pinToPixels();
-      st.savedRect = {
-        left: winNp.style.left,
-        top: winNp.style.top,
-        width: winNp.style.width,
-      };
+      /* 修正 B2：先捕获「最近的 normal 几何」（拖动会实时更新 WM 的 rect），
+         使「拖动 → 最大化 → 还原」不丢失拖动位置。 */
+      if (m && typeof m.captureRect === 'function') m.captureRect('winNp');
+      var r = (m && m.reg && m.reg['winNp']) ? m.reg['winNp'].rect : null;
+      st.savedRect = r
+        ? { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' }
+        : { left: winNp.style.left, top: winNp.style.top, width: winNp.style.width };
       winNp.style.left = '0px';
       winNp.style.top = '0px';
       winNp.style.width = desktop.clientWidth + 'px';
@@ -318,6 +333,11 @@
       winNp.style.height = '';
       winNp.classList.remove('is-maxed');
       st.maxed = false;
+      /* 还原后同步 WM 几何，保证后续拖动/持久化基于正确坐标 */
+      if (m && typeof m.captureRect === 'function') {
+        m.captureRect('winNp');
+        m.persist('winNp');
+      }
     }
     npMaxGlyph.className = st.maxed ? 'glyph-max glyph-restore' : 'glyph-max';
     npBtnMax.title = st.maxed ? '向下还原' : '最大化';
@@ -392,6 +412,12 @@
     document.removeEventListener('mouseup', dragEnd);
     document.removeEventListener('touchmove', dragMove);
     document.removeEventListener('touchend', dragEnd);
+    /* 位置记忆：拖动结束即固化并去抖写盘 */
+    var m = wm();
+    if (m && typeof m.captureRect === 'function') {
+      m.captureRect('winNp');
+      m.persist('winNp');
+    }
   }
 
   npTitlebar.addEventListener('mousedown', dragStart);
@@ -840,13 +866,53 @@
   setLineNo(true);
   loadText(INITIAL_DOC, '欢迎来到我的小站.md', '已载入初始文档');
 
-  /* 向共享窗口管理器登记，使主窗口的 activate 逻辑能感知本窗口存在 */
+  /* 向共享窗口管理器登记，使主窗口的 activate 逻辑能感知本窗口存在。
+     注意：登记的 setInactive 只切标题栏渐变；任务栏按钮由 WinWM 统一同步。 */
   if (global.WinWM && typeof global.WinWM.register === 'function') {
     global.WinWM.register('winNp', {
+      el: winNp,
+      taskBtn: npTaskBtn,
       isVisible: function () { return st.open && !winNp.classList.contains('is-hidden'); },
       setInactive: setInactive,
       show: show,
       hide: function () { hide('min'); },
+      close: function () { hide('close'); },
+      getRect: function () {
+        return {
+          left: parseFloat(winNp.style.left) || 0,
+          top: parseFloat(winNp.style.top) || 0,
+          width: winNp.offsetWidth || 0,
+          height: winNp.offsetHeight || 0,
+          position: winNp.style.position || 'relative',
+        };
+      },
+      setRect: function (r) {
+        winNp.style.position = 'absolute';
+        winNp.style.margin = '0';
+        if (r.width) winNp.style.width = r.width + 'px';
+        winNp.style.left = r.left + 'px';
+        winNp.style.top = r.top + 'px';
+        st.pinned = true;
+      },
+      /* 视口变化时由 WinWM 统一调度：重夹取并持久化 */
+      relayout: function () {
+        if (!st.open || st.maxed) return;
+        if (winNp.style.position !== 'absolute') return;
+        var desktop = $('desktop');
+        if (!desktop) return;
+        var dw = desktop.clientWidth;
+        var ww = winNp.offsetWidth;
+        var maxLeft = Math.max(0, dw - ww);
+        var l = parseFloat(winNp.style.left) || 0;
+        if (l > maxLeft) winNp.style.left = maxLeft + 'px';
+        var maxTop = global.innerHeight - winNp.offsetHeight - 8;
+        var t = parseFloat(winNp.style.top) || 0;
+        if (t > maxTop && maxTop > 0) winNp.style.top = Math.max(8, maxTop) + 'px';
+        if (typeof global.WinWM.captureRect === 'function') {
+          global.WinWM.captureRect('winNp');
+          global.WinWM.persist('winNp');
+        }
+      },
     });
   }
 

@@ -14,6 +14,7 @@ venv/
 # ---- 本地预览 / 调试产物 ----
 .edge-*/
 .edge-tmp/
+.preview/
 _shot*.png
 _v*.png
 _final.png

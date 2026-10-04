@@ -184,20 +184,20 @@
   }
 
   /* ======================================================================
-     4. 窗口显示 / 隐藏 / 最大化（WinWM 契约，与 notepad.js 语义一致）
+     4. 窗口显示 / 隐藏 / 最大化（由 WinWM 统一驱动，模块只做几何）
      ====================================================================== */
   function wm() { return global.WinWM || null; }
 
+  /* 只负责标题栏渐变；任务栏高亮由 WinWM.syncTaskBtn 统一同步，
+     避免两处重复切换导致「两个按钮同时高亮」。 */
   function setInactive(on) {
     winMp.classList.toggle('is-inactive', !!on);
-    if (on) mpTaskBtn.classList.remove('is-active');
-    else mpTaskBtn.classList.add('is-active');
   }
 
   function activate() {
     var m = wm();
-    if (m && typeof m.setActive === 'function') {
-      m.setActive('winMp');
+    if (m && typeof m.focus === 'function') {
+      m.focus('winMp');
     } else {
       setInactive(false);
       var mainWin = $(DESKTOP_WINDOW_ID);
@@ -208,36 +208,47 @@
   }
 
   function deactivate() {
+    /* 只切自身的视觉非活动态。
+       不再直接改写 WinWM.activeId —— activeId 归 WinWM 独占管理，
+       由 releaseFocus 决定「退场后谁是新的活动窗口」。
+       此前在此处把 activeId 置 null，会导致 hide() 里随后的 releaseFocus
+       因 activeId!==fromId 而提前返回，主窗口明明可见却拿不到焦点。 */
     setInactive(true);
-    var m = wm();
-    if (m && m.activeId === 'winMp') m.activeId = null;
   }
 
   function show() {
     st.open = true;
+    var m = wm();
+    if (m && typeof m.setState === 'function') m.setState('winMp', 'normal');
     winMp.classList.remove('is-hidden');
-    mpTaskBtn.classList.remove('is-hidden');
     mpTaskBtn.title = '媒体播放机 — ' + trackNow().title;
     winMp.setAttribute('aria-hidden', 'false');
-    /* 首次显示时把窗口从「文档流」转为「绝对定位」并锚定到视口内。
-       若保持 static + margin:auto，它会排在文档流里，视口偏矮时会被推到
-       首屏之外（窗口"打开了"却看不见）。绝对定位则始终在眼底。 */
-    if (!st.pinned) {
+    /* 位置记忆：优先套用上次保存的几何，否则退回默认锚定 */
+    if (m && typeof m.applyRect === 'function') {
+      m.applyRect('winMp', function () {
+        if (!st.pinned) { pinToPixels(); st.pinned = true; }
+      });
+    } else if (!st.pinned) {
       pinToPixels();
       st.pinned = true;
     }
+    st.pinned = true;
     void winMp.offsetWidth;
     winMp.style.opacity = '1';
     winMp.style.transform = 'none';
     activate();
     setText('mpStatusMain', mpAudio.paused ? '就绪' : '播放中');
-    /* 从最小化恢复时同步对话框位置 */
     notifyDialog();
+    if (m && typeof m.persist === 'function') m.persist('winMp');
   }
 
   function hide(mode) {
     if (!st.open) return;
     st.open = false;
+
+    var m = wm();
+    /* 记录当前 normal 几何，供位置记忆与最大化还原使用 */
+    if (m && typeof m.captureRect === 'function') m.captureRect('winMp');
 
     var optAnim = $('optAnim');
     var animate = !!optAnim && optAnim.checked && !reduceMotion;
@@ -254,23 +265,30 @@
       winMp.style.transform =
         'translate(' + dx + 'px, ' + dy + 'px) scale(' + sx + ', ' + sy + ')';
       winMp.style.opacity = '0';
-      setTimeout(function () { winMp.classList.add('is-hidden'); }, 240);
+      setTimeout(function () {
+        if (st.open) return;                 // 期间被重新唤醒则放弃隐藏
+        winMp.classList.add('is-hidden');
+      }, 240);
     } else {
       winMp.classList.add('is-hidden');
     }
 
-    mpTaskBtn.classList.add('is-hidden');
     winMp.setAttribute('aria-hidden', 'true');
     /* 最小化/关闭时暂停播放，避免后台持续发声（符合原生播放机行为） */
     pause();
     deactivate();
 
-    var m = wm();
-    if (m && typeof m.setActive === 'function' && m.isVisible && m.isVisible('win')) {
-      m.setActive('win');
+    /* 状态机：min 保留任务栏按钮，close 移除（由 WinWM 统一同步）。
+       修正 A2：按钮可见性不再与窗口状态脱节，统一由 setState → syncTaskBtn 决定。 */
+    if (m && typeof m.setState === 'function') {
+      m.setState('winMp', mode === 'close' ? 'closed' : 'minimized');
+      if (typeof m.releaseFocus === 'function') m.releaseFocus('winMp');
+      if (typeof m.persist === 'function') m.persist('winMp');
+    } else {
+      mpTaskBtn.classList.add('is-hidden');
     }
+
     setText('mpStatusMain', mode === 'close' ? '已关闭' : '已最小化');
-    /* 最小化/关闭时同步对话框：父窗口不可见 → 对话框一并收起 */
     notifyDialog();
   }
 
@@ -292,6 +310,10 @@
      否则首次打开时捕获的像素宽会被内联样式冻结，视口变窄后仍沿用旧值 →
      窗口溢出桌面容器（曾经的缺陷）。这里只负责 left/top。 */
   function pinToPixels() {
+    /* 修正 B1：已转为绝对定位（含拖动过）时不得重算坐标，
+       否则每次 dragStart / show 都会把窗口重置回默认锚点，
+       表现为「拖动后一失焦就瞬移回原位」。 */
+    if (winMp.style.position === 'absolute') return;
     var dr = $('desktop').getBoundingClientRect();
     var wr = winMp.getBoundingClientRect();
     var h = wr.height || 208;
@@ -348,13 +370,15 @@
 
   function toggleMax() {
     var desktop = $('desktop');
+    var m = wm();
     if (!st.maxed) {
       pinToPixels();
-      st.savedRect = {
-        left: winMp.style.left,
-        top: winMp.style.top,
-        width: winMp.style.width,
-      };
+      /* 修正 B2：先捕获「最近的 normal 几何」，使拖动结果不因最大化而丢失 */
+      if (m && typeof m.captureRect === 'function') m.captureRect('winMp');
+      var r = (m && m.reg && m.reg['winMp']) ? m.reg['winMp'].rect : null;
+      st.savedRect = r
+        ? { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' }
+        : { left: winMp.style.left, top: winMp.style.top, width: winMp.style.width };
       winMp.style.left = '0px';
       winMp.style.top = '0px';
       winMp.style.width = desktop.clientWidth + 'px';
@@ -373,6 +397,10 @@
       winMp.style.width = '';
       winMp.style.height = '';
       reclamp();
+      if (m && typeof m.captureRect === 'function') {
+        m.captureRect('winMp');
+        m.persist('winMp');
+      }
     }
     mpMaxGlyph.className = st.maxed ? 'glyph-max glyph-restore' : 'glyph-max';
     mpBtnMax.title = st.maxed ? '向下还原' : '最大化';
@@ -427,6 +455,12 @@
     document.removeEventListener('touchmove', dragMove);
     document.removeEventListener('touchend', dragEnd);
     notifyDialog();
+    /* 位置记忆：拖动结束即固化并去抖写盘 */
+    var m = wm();
+    if (m && typeof m.captureRect === 'function') {
+      m.captureRect('winMp');
+      m.persist('winMp');
+    }
   }
 
   /* 父窗口位置/尺寸变化后，通知对话框重新夹回视口。
@@ -1027,6 +1061,12 @@
   });
   mpTaskBtn.addEventListener('click', toggle);
 
+  /* 窗口内点击时把本窗口置为活动窗口（捕获阶段，与记事本一致）——
+     修正「点窗口本体不会成为活动窗口」的缺失。 */
+  winMp.addEventListener('mousedown', function () {
+    if (st.open) activate();
+  }, true);
+
   /* 对外菜单 API（供 app.js 的 data-act 分支调用） */
   global.WinPlayerMenu = {
     togglePlay: togglePlay,
@@ -1139,10 +1179,40 @@
 
   if (global.WinWM && typeof global.WinWM.register === 'function') {
     global.WinWM.register('winMp', {
+      el: winMp,
+      taskBtn: mpTaskBtn,
       isVisible: function () { return st.open && !winMp.classList.contains('is-hidden'); },
       setInactive: setInactive,
       show: show,
       hide: function () { hide('min'); },
+      close: function () { hide('close'); },
+      getRect: function () {
+        return {
+          left: parseFloat(winMp.style.left) || 0,
+          top: parseFloat(winMp.style.top) || 0,
+          width: winMp.offsetWidth || 0,
+          height: winMp.offsetHeight || 0,
+          position: winMp.style.position || 'relative',
+        };
+      },
+      /* 播放器刻意不写像素宽（交给 CSS 响应式）：setRect 亦遵循此约定 */
+      setRect: function (r) {
+        winMp.style.position = 'absolute';
+        winMp.style.margin = '0';
+        winMp.style.width = '';
+        winMp.style.left = r.left + 'px';
+        winMp.style.top = r.top + 'px';
+        st.pinned = true;
+      },
+      /* 视口变化时由 WinWM 统一调度：重夹取并持久化 */
+      relayout: function () {
+        reclamp();
+        var m = wm();
+        if (m && typeof m.captureRect === 'function') {
+          m.captureRect('winMp');
+          m.persist('winMp');
+        }
+      },
     });
   }
 

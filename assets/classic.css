@@ -359,8 +359,14 @@ code, pre, .mono { font-family: var(--mono); }
   border-color: var(--light) var(--dark) var(--dark) var(--light);
   box-shadow: inset 1px 1px 0 var(--hilight), inset -1px -1px 0 var(--shadow);
   z-index: 5;
+  /* 最小化/关闭/恢复动画的真实载体：
+     之前 JS 只改 inline transform/opacity 却没有任何 transition，
+     导致缩放是「瞬变 + 240ms 后 display:none」，观感生硬。
+     这里补齐过渡，JS 的 240ms 延时与 transition 时长对应。 */
+  transition: transform .24s ease, opacity .24s ease;
 }
-.window.is-dragging { cursor: move; }
+/* 拖动中禁用过渡，否则窗口会「追着鼠标飘」，产生延迟感 */
+.window.is-dragging { cursor: move; transition: none; }
 .window.is-maxed     { margin: 0; }
 .window.is-hidden    { display: none; }
 .window.is-inactive .title-bar {
@@ -1252,6 +1258,18 @@ code, pre, .mono { font-family: var(--mono); }
   box-shadow: inset 1px 1px 0 var(--shadow), inset -1px -1px 0 var(--hilight);
   background: #d4d4d4;
   font-weight: bold;
+}
+/* 最小化（区别于「关闭」）：按钮保留在任务栏，但呈「未按下」的弱化态 —
+   与 is-active 的凹陷高亮形成对比，也与「关闭后按钮消失」形成区分。
+   注意：本类由 WinWM.syncTaskBtn 统一维护，勿在各模块手改。 */
+.task-btn.is-minimized {
+  color: #6b6b6b;
+  font-style: italic;
+}
+.task-btn.is-minimized .task-btn__label::after {
+  content: ' (已最小化)';
+  font-style: normal;
+  font-size: 11px;
 }
 .task-btn__ico {
   flex: none;

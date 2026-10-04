@@ -198,6 +198,9 @@
     document.removeEventListener('mouseup', dragEnd);
     document.removeEventListener('touchmove', dragMove);
     document.removeEventListener('touchend', dragEnd);
+    /* 位置记忆：拖动结束即固化并去抖写盘 */
+    WM.captureRect('win');
+    WM.persist('win');
   };
 
   titlebar.addEventListener('mousedown', dragStart);
@@ -214,7 +217,14 @@
   const toggleMax = () => {
     if (!isMaxed) {
       pinToPixels();
-      savedRect = { left: win.style.left, top: win.style.top, width: win.style.width };
+      /* 修正 B2：进入最大化前先捕获「最近的 normal 几何」。
+         拖动会实时更新 WM 的 rect，因此这里取到的就是拖动后的结果，
+         「拖动 → 最大化 → 还原」不会再丢失拖动位置。 */
+      WM.captureRect('win');
+      const r = WM.reg['win'] ? WM.reg['win'].rect : null;
+      savedRect = r
+        ? { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' }
+        : { left: win.style.left, top: win.style.top, width: win.style.width };
       win.style.left  = '0px';
       win.style.top   = '0px';
       win.style.width = desktop.clientWidth + 'px';
@@ -224,6 +234,9 @@
       if (savedRect) Object.assign(win.style, savedRect);
       win.classList.remove('is-maxed');
       isMaxed = false;
+      /* 还原后同步 WM 几何，保证后续拖动/持久化基于正确坐标 */
+      WM.captureRect('win');
+      WM.persist('win');
     }
     maxGlyph.className = isMaxed ? 'glyph-max glyph-restore' : 'glyph-max';
     btnMax.title = isMaxed ? '向下还原' : '最大化';
@@ -240,14 +253,24 @@
 
   /* ======================================================================
      5. 最小化 / 关闭 / 恢复
+     ----------------------------------------------------------------------
+     与 WinWM 的分工（统一框架）：
+       · 本文件只负责「主窗口的内容与几何」（拖动、最大化、pinToPixels）；
+       · 显隐 / 状态机 / Z 序 / 任务栏联动 / 位置持久化一律交给 WinWM。
+     这样三个窗口的窗口行为由同一处代码保证一致，不再各写一份。
      ====================================================================== */
   let hidden = false;
 
+  /* 隐藏：动画 + 状态落地。mode ∈ {'min','close'}。
+     reduced-motion 或关闭动画开关时走无动画分支。 */
   const hideWindow = (mode) => {
     if (hidden) return;
     hidden = true;
     closeMenus();
     closeStart();
+
+    /* 记录当前 normal 几何，供位置记忆与最大化还原使用 */
+    WM.captureRect('win');
 
     const optAnim = $('optAnim');
     const animate = !!optAnim && optAnim.checked && !reduceMotion;
@@ -264,108 +287,253 @@
       win.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(' + sx + ', ' + sy + ')';
       win.style.opacity = '0';
       /* 动画结束后彻底隐藏，避免不可见元素仍拦截点击 */
-      setTimeout(() => win.classList.add('is-hidden'), 240);
+      setTimeout(() => {
+        if (WM.getState('win') === 'normal') return;   // 期间被重新唤醒则放弃隐藏
+        win.classList.add('is-hidden');
+      }, 240);
     } else {
       win.classList.add('is-hidden');
     }
 
-    taskBtn.classList.remove('is-active');
-    win.classList.add('is-inactive');
-
+    /* 状态机：min 与 close 语义不同，任务栏按钮的处置也不同 */
     if (mode === 'close') {
-      toast('窗口已关闭', '点击任务栏上的「哔哩哔哩」按钮，或双击桌面图标即可重新打开。');
+      WM.setState('win', 'closed');
+      toast('窗口已关闭', '点击开始菜单或桌面图标即可重新打开。');
       setText('statusMain', '已关闭');
     } else {
+      WM.setState('win', 'minimized');
       setText('statusMain', '已最小化');
     }
 
-    /* 让共享管理器知道主窗口已退场：若有其他可见窗口，交还活动状态 */
-    if (WM.activeId === 'win') {
-      const heir = WM.order.filter((wid) => wid !== 'win' && WM.isVisible(wid))[0];
-      if (heir) wmSetActive(heir);
-      else {
-        WM.activeId = null;
-        WM.order.forEach((wid) => {
-          if (wid === 'win') return;
-          const api = WM.reg[wid];
-          if (api) api.setInactive(true);
-        });
-      }
-    }
+    /* 交还活动状态给其他可见窗口 */
+    WM.releaseFocus('win');
+    WM.persist('win');
   };
 
   const showWindow = () => {
     if (!hidden) {
       /* 已可见：仅需置顶聚焦，不应重复播放出现动画 */
-      wmSetActive('win');
+      WM.focus('win');
       return;
     }
     hidden = false;
-    win.classList.remove('is-hidden');
-    win.classList.remove('is-inactive');
+    WM.setState('win', 'normal');
+    /* 位置记忆：优先套用上次保存的几何，否则退回默认锚定 */
+    WM.applyRect('win', pinToPixels);
+    win.classList.remove('is-hidden', 'is-inactive');
     void win.offsetWidth;                 // 强制回流，保证过渡生效
     win.style.opacity = '1';
     win.style.transform = 'none';
-    taskBtn.classList.add('is-active');
     hideToast();
     setText('statusMain', '就绪');
-    wmSetActive('win');
+    WM.focus('win');
+    WM.persist('win');
   };
 
   const toggleWindow = () => (hidden ? showWindow() : hideWindow('min'));
 
   /* ======================================================================
-     5b. 窗口管理器（极简共享契约）
+     5b. 窗口管理器 WinWM（统一框架 · 唯一真相源）
      ----------------------------------------------------------------------
-     多个窗口模块（本文件与 notepad.js）需要互相知道：
-       「谁现在是活动窗口」「谁只是可见但未激活」
-     任务栏的正确语义是：
-       · 点击非活动但可见的窗口按钮 → 激活它（不隐藏）
-       · 再次点击已激活的窗口按钮   → 最小化
-     为避免两个模块互相 import，这里把能力注册到 window.WinWM，
-     每个模块只登记三个回调：show / hide / isVisible。
+     职责（三窗口共用，模块不再各自实现）：
+       1. 注册表：id → { el, taskBtn, api, state, rect, timer }
+       2. Z 序：focus(id) 时把该窗口 z-index 提到 maxZ+1，真正实现「点击置顶」
+       3. 状态机：normal / minimized / closed（+ maximized 由模块自管修饰）
+       4. 任务栏联动：按钮的 is-hidden(closed) / is-minimized / is-active 集中同步
+       5. 位置持久化：captureRect / applyRect / persist / recall（localStorage，去抖 + 容错）
      ====================================================================== */
-  const WM = (window.WinWM = window.WinWM || {
-    order: [],          // 登记顺序，用于 z-index 与「谁在上」判断
-    activeId: null,     // 当前活动窗口 id
-    reg: {},
-  });
+  const WM = (window.WinWM = window.WinWM || {});
 
-  function wmRegister(id, api) {
-    if (!WM.reg[id]) WM.order.push(id);
-    WM.reg[id] = api;
+  WM.reg        = WM.reg || {};       // id → { el, taskBtn, api, state, rect, saveTimer }
+  WM.order      = WM.order || [];     // 登记顺序（保持稳定的继承者选择）
+  WM.activeId   = WM.activeId || null;
+  WM.maxZ       = WM.maxZ || 5;       // 窗口 z-index 游标（.window 基础值为 5）
+  WM.STORE_KEY  = WM.STORE_KEY || 'winclassic.wm.v1';
+  WM.SAVE_DEBOUNCE = 200;
+
+  /* ---- 持久化底层（隐私模式 / 存储禁用时静默降级） ---- */
+  function safeLoad() {
+    try {
+      const raw = window.localStorage.getItem(WM.STORE_KEY);
+      if (!raw) return {};
+      const obj = JSON.parse(raw);
+      return (obj && typeof obj === 'object') ? obj : {};
+    } catch (err) { return {}; }
+  }
+  function safeSave(store) {
+    try { window.localStorage.setItem(WM.STORE_KEY, JSON.stringify(store)); }
+    catch (err) { /* 忽略：不影响功能 */ }
   }
 
-  /* 把某个窗口标记为活动窗口，其余可见窗口转为非活动。
-     对不可见窗口同样调用 setInactive(true)，
-     以保证其任务栏按钮的高亮被清除（避免「幽灵高亮」）。 */
-  function wmSetActive(id) {
-    WM.activeId = id;
+  /* 登记窗口。api = { isVisible, setInactive, show, hide, getRect, setRect } */
+  function wmRegister(id, api) {
+    const rec = WM.reg[id] || {};
+    if (!WM.reg[id]) WM.order.push(id);
+    rec.api = api;
+    rec.el = api.el || rec.el || null;
+    rec.taskBtn = api.taskBtn || rec.taskBtn || null;
+    rec.state = rec.state || 'normal';
+    rec.rect = rec.rect || null;
+    WM.reg[id] = rec;
+    /* 用存储里的历史状态初始化（首次加载时恢复窗口） */
+    const saved = safeLoad()[id];
+    if (saved && saved.state) rec.state = saved.state;
+    syncTaskBtn(id);
+  }
+  WM.register = wmRegister;   /* 必须暴露：notepad.js / player.js 依赖此入口登记 */
+
+  /* ---- Z 序 ---- */
+  function wmRaise(id) {
+    const rec = WM.reg[id];
+    if (!rec || !rec.el) return;
+    WM.maxZ += 1;
+    /* 防止极端累积导致 z-index 过大：超过阈值时归一化重排 */
+    if (WM.maxZ > 900) wmNormalizeZ();
+    rec.el.style.zIndex = String(WM.maxZ);
+  }
+  function wmNormalizeZ() {
+    let z = 5;
     WM.order.forEach((wid) => {
-      const api = WM.reg[wid];
-      if (!api) return;
-      if (wid === id) api.setInactive(false);
-      else api.setInactive(true);
+      const rec = WM.reg[wid];
+      if (rec && rec.el) { z += 1; rec.el.style.zIndex = String(z); }
+    });
+    WM.maxZ = z;
+  }
+
+  /* ---- 状态 ---- */
+  WM.getState = (id) => (WM.reg[id] ? WM.reg[id].state : null);
+  WM.setState = (id, state) => {
+    const rec = WM.reg[id];
+    if (!rec) return;
+    rec.state = state;
+    if (rec.el) rec.el.setAttribute('data-wm-state', state);
+    syncTaskBtn(id);
+  };
+
+  /* ---- 任务栏按钮联动（集中处理，消除「图标残留」） ---- */
+  function syncTaskBtn(id) {
+    const rec = WM.reg[id];
+    if (!rec || !rec.taskBtn) return;
+    const st = rec.state;
+    rec.taskBtn.classList.toggle('is-hidden', st === 'closed');     // 关闭 → 按钮消失
+    rec.taskBtn.classList.toggle('is-minimized', st === 'minimized'); // 最小化 → 按钮保留但去高亮
+    rec.taskBtn.classList.toggle('is-active', WM.activeId === id && st === 'normal');
+  }
+  WM.syncTaskBtn = syncTaskBtn;
+
+  /* ---- 焦点：唯一入口，原子完成「置顶 + 高亮 + 互斥」 ---- */
+  function wmFocus(id) {
+    const rec = WM.reg[id];
+    if (!rec || rec.state !== 'normal') return;   // 不可见窗口不可聚焦
+    WM.activeId = id;
+    wmRaise(id);                                  // 关键修正 C1/C2：聚焦即置顶
+    WM.order.forEach((wid) => {
+      const r = WM.reg[wid];
+      if (!r || !r.api) return;
+      r.api.setInactive(wid !== id);
+      syncTaskBtn(wid);
     });
   }
+  WM.focus = wmFocus;
 
-  WM.setActive = wmSetActive;
-  WM.register = wmRegister;
+  /* 某窗口退场（关闭/最小化）时交还焦点。
+     规则（按优先级）：
+       1) 交给「最近登记的其它可见窗口」——符合「退场后自然落到前台窗口」的直觉；
+       2) 若无其它可见窗口，但退场者自身仍可见（关闭≠隐藏的边界情形），
+          则保留它自己的焦点，避免出现「窗口明明在屏幕上、却没有活动窗口」的悬空态；
+       3) 否则清空 activeId 并刷新所有任务栏按钮高亮。 */
+  WM.releaseFocus = (fromId) => {
+    if (WM.activeId !== fromId) return;
+    const heir = WM.order.slice().reverse().filter((wid) =>
+      wid !== fromId && WM.isVisible(wid))[0];
+    if (heir) { wmFocus(heir); return; }
+    if (WM.isVisible(fromId)) {
+      /* 自身仍可见：仅需刷新高亮，activeId 保持不变（防止「可见却无活动窗口」） */
+      wmFocus(fromId);
+      return;
+    }
+    WM.activeId = null;
+    WM.order.forEach((wid) => { syncTaskBtn(wid); });
+  };
+
   WM.isVisible = (id) => {
-    const api = WM.reg[id];
-    return !!(api && api.isVisible());
+    const rec = WM.reg[id];
+    return !!(rec && rec.api && rec.api.isVisible());
   };
   WM.isActive = (id) => WM.activeId === id;
 
+  /* ---- 位置持久化 ---- */
+  /* 捕获当前几何（仅 normal 态有意义；最大化/隐藏时跳过，避免把满屏坐标当常态） */
+  WM.captureRect = (id) => {
+    const rec = WM.reg[id];
+    if (!rec || !rec.api || typeof rec.api.getRect !== 'function') return null;
+    if (rec.state !== 'normal') return rec.rect;
+    const r = rec.api.getRect();
+    if (r) rec.rect = r;
+    return rec.rect;
+  };
+
+  WM.persist = (id) => {
+    const rec = WM.reg[id];
+    if (!rec) return;
+    if (rec.saveTimer) clearTimeout(rec.saveTimer);
+    rec.saveTimer = setTimeout(() => {
+      rec.saveTimer = null;
+      const store = safeLoad();
+      const prev = store[id] || {};
+      store[id] = {
+        state: rec.state,
+        rect: rec.rect || prev.rect || null,
+      };
+      safeSave(store);
+    }, WM.SAVE_DEBOUNCE);
+  };
+
+  /* 套用记忆的几何；无记录或与视口不相容时调用 fallback（默认锚定） */
+  WM.applyRect = (id, fallback) => {
+    const rec = WM.reg[id];
+    if (!rec || !rec.api || typeof rec.api.setRect !== 'function') {
+      if (fallback) fallback();
+      return false;
+    }
+    const saved = (safeLoad()[id] || {}).rect;
+    if (!saved || !Number.isFinite(saved.left) || !Number.isFinite(saved.top)) {
+      if (fallback) fallback();
+      return false;
+    }
+    /* 相容性检查：窗口至少要有 80px 落在视口内，否则视为失效（换屏/旋转） */
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const onScreen = saved.left < vw - 80 && saved.top < vh - 40 &&
+                     saved.left + (saved.width || 0) > 80 && saved.top > -8;
+    if (!onScreen) { if (fallback) fallback(); return false; }
+    rec.api.setRect(saved);
+    rec.rect = saved;
+    return true;
+  };
+
+  /* 恢复历史状态（页面加载时调用一次）：仅恢复位置，不自动弹出窗口 */
+  WM.recallAll = () => {
+    WM.order.forEach((wid) => {
+      const saved = safeLoad()[wid];
+      if (saved && saved.rect) {
+        const rec = WM.reg[wid];
+        if (rec) rec.rect = saved.rect;
+      }
+    });
+  };
+
+  /* ---- 事件绑定 ---- */
   on('btnMin', 'click', () => hideWindow('min'));
   on('btnClose', 'click', () => hideWindow('close'));
   on('btnMin2', 'click', () => hideWindow('min'));
 
-  /* 任务栏按钮：可见但非活动 → 激活；已活动 → 最小化 */
+  /* 任务栏按钮：已关闭 → 显示；已活动 → 最小化；可见非活动 → 聚焦置顶 */
   taskBtn.addEventListener('click', () => {
-    if (hidden) { showWindow(); return; }
-    if (WM.activeId === 'win') hideWindow('min');
-    else showWindow();
+    if (hidden || WM.getState('win') === 'closed' || WM.getState('win') === 'minimized') {
+      showWindow(); return;
+    }
+    if (WM.isActive('win')) hideWindow('min');
+    else WM.focus('win');
   });
 
   /* 桌面图标：我的电脑 / 回收站 / 最新投稿 → 唤回窗口 */
@@ -373,21 +541,41 @@
     on(id, 'click', (e) => { e.preventDefault(); showWindow(); });
   });
 
+  /* 主窗口「点击本体聚焦」：沿用拖动之外的任意 mousedown（捕获阶段），
+     修正「点主窗口标题栏不会成为活动窗口」的缺失（与记事本/播放器对齐）。 */
+  win.addEventListener('mousedown', () => {
+    if (!hidden) WM.focus('win');
+  }, true);
+
   /* 向共享管理器登记主窗口。
-     setInactive 必须同时同步「窗口标题栏渐变」与「任务栏按钮高亮」——
-     win 的按钮高亮原先只由 showWindow/hideWindow 切换，
-     当别的窗口通过 wmSetActive 把主窗口置为非活动时，按钮高亮不会被清除，
-     于是任务栏上出现「两个按钮同时高亮」的错误观感。 */
+     setInactive 只负责「标题栏渐变」——任务栏高亮由 WinWM.syncTaskBtn 统一处理，
+     避免两处重复切换导致「两个按钮同时高亮」。 */
   wmRegister('win', {
+    el: win,
+    taskBtn: taskBtn,
     isVisible: () => !hidden && !win.classList.contains('is-hidden'),
-    setInactive: (on2) => {
-      win.classList.toggle('is-inactive', !!on2);
-      taskBtn.classList.toggle('is-active', !on2);
-    },
+    setInactive: (on2) => { win.classList.toggle('is-inactive', !!on2); },
     show: () => showWindow(),
     hide: () => hideWindow('min'),
+    close: () => hideWindow('close'),
+    getRect: () => ({
+      left: parseFloat(win.style.left) || 0,
+      top: parseFloat(win.style.top) || 0,
+      width: win.offsetWidth || 0,
+      height: win.offsetHeight || 0,
+      position: win.style.position || 'relative',
+    }),
+    setRect: (r) => {
+      win.style.position = 'absolute';
+      win.style.margin = '0';
+      if (r.width) win.style.width = r.width + 'px';
+      win.style.left = r.left + 'px';
+      win.style.top = r.top + 'px';
+    },
   });
+  WM.setState('win', 'normal');
   WM.activeId = 'win';
+  syncTaskBtn('win');
   taskBtn.classList.add('is-active');
 
   /* 记事本图标 → 打开记事本窗口（由 notepad.js 提供实现） */
@@ -546,12 +734,31 @@
       case 'check-source': dialogCheckSource(); break;
       case 'about-json':   dialogAboutJson(); break;
       case 'dialog-settings':
-        scrollToEl($('optIcons').closest('.group'));
+        /* 修正 D1/D2：主窗口被最小化/关闭时，先把它恢复并聚焦，
+           再滚动到设置区，否则滚动的是不可见容器，用户零反馈。 */
+        if (!WM.isVisible('win')) {
+          showWindow();
+          /* 恢复动画有一帧延迟，推迟滚动以等待布局稳定 */
+          setTimeout(() => scrollToEl($('optIcons').closest('.group')), 60);
+        } else {
+          WM.focus('win');
+          scrollToEl($('optIcons').closest('.group'));
+        }
         toast('显示设置', '已在右侧「显示设置」中列出，可直接勾选。');
         break;
       case 'about':        dialogAbout(); break;
       case 'compat':       dialogCompat(); break;
-      case 'close':        hideWindow('close'); break;
+      case 'close':
+        /* 修正 A1：语义改为「关闭当前活动窗口」。
+           优先调用该窗口登记的真实 close（而非 hide 的最小化别名）；
+           无活动窗口时兜底关闭主窗口，保持旧行为可用。 */
+        if (WM.activeId && WM.activeId !== 'win') {
+          const rec = WM.reg[WM.activeId];
+          if (rec && rec.api && typeof rec.api.close === 'function') { rec.api.close(); break; }
+          if (rec && rec.api && typeof rec.api.hide === 'function') { rec.api.hide(); break; }
+        }
+        hideWindow('close');
+        break;
       default: break;
     }
   }
@@ -1430,8 +1637,18 @@
         const maxTop = window.innerHeight - 62;
         win.style.left = Math.min(Math.max(left, -(w - 140)), maxLeft) + 'px';
         win.style.top = Math.min(Math.max(top, -6), maxTop) + 'px';
+        /* 视口变化后重 clamp 的结果也纳入位置记忆 */
+        WM.captureRect('win');
+        WM.persist('win');
       }
+      /* 通知其它窗口模块重新夹取（统一调度，避免各自监听 resize 漂移） */
+      WM.order.forEach((wid) => {
+        if (wid === 'win') return;
+        const rec = WM.reg[wid];
+        if (rec && rec.api && typeof rec.api.relayout === 'function') rec.api.relayout();
+      });
       updateZoom();
+      if (dlgOwner) syncDialogWithOwner();
     }, 120);
   });
 
@@ -1490,6 +1707,10 @@
   updateZoom();
   applyIcons();
   applyThumbs();
+
+  /* 恢复历史几何（位置记忆）：页面加载时读回上次的 rect，
+     窗口在首次 open() 时由 WinWM.applyRect 套用。 */
+  WM.recallAll();
 
   setTimeout(() => {
     toast('欢迎', '正在读取数据并渲染 UID ' + UID + ' 的投稿与动态。');
