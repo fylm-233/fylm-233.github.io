@@ -23,6 +23,10 @@ _bili_real.json
 
 # ---- 编辑器 / 系统 ----
 .vscode/
+.vs/
+*.slnx
+*.suo
+*.user
 .idea/
 .DS_Store
 Thumbs.db
