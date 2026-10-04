@@ -33,10 +33,125 @@
 </head>
 
 <body>
+
+<!-- ======================================================================
+     SVG 图标精灵表（媒体播放机专用）
+     ----------------------------------------------------------------------
+     为什么用 SVG 而不是 border 三角形拼字形：
+       · border 三角形是「用边框伪装成图形」的 hack —— 元素的 border box
+         与可见墨迹不重合，多部件字形必须手推 --gx / --gw 才能居中，
+         且 sub-pixel 取整会随容器尺寸漂移（旧版 ⏭ 因此被按钮右缘裁切）。
+       · SVG 有确定的 viewBox：几何即所见，`preserveAspectRatio` 默认
+         等比缩放，容器宽高怎么变都严格居中、比例恒定。
+
+     统一规格：
+       · 所有 symbol 共用 viewBox="0 0 24 24"，图形画在以 12,12 为心的
+         对称范围内 —— 这样「居中」由坐标系保证，不依赖 CSS 偏移。
+       · fill="currentColor"：颜色随文字色继承，主题切换无需改图标。
+       · 纯 <path>/<rect> 图元，无 <use> 嵌套、无 CSS 依赖，
+         兼容 EdgeHTML 18（该引擎自 Edge 12 起支持 SVG use + symbol）。
+
+     引用方式：<svg class="..." viewBox="0 0 24 24"><use href="#mp-i-play"/></svg>
+     注意 EdgeHTML 需要 xlink:href 兜底，故两条都写。
+     ====================================================================== -->
+<svg class="mp-sprite" width="0" height="0" aria-hidden="true" focusable="false"
+     style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <!-- ▶ 播放：顶点 12,12 的等腰三角形，左右留白相等 -->
+    <symbol id="mp-i-play" viewBox="0 0 24 24">
+      <path d="M9 6.2 18 12 9 17.8Z"/>
+    </symbol>
+
+    <!-- ■ 停止：以 12,12 为心的正方形 -->
+    <symbol id="mp-i-stop" viewBox="0 0 24 24">
+      <rect x="7.5" y="7.5" width="9" height="9"/>
+    </symbol>
+
+    <!-- ⏸ 暂停：两根竖条，左右对称于 12 -->
+    <symbol id="mp-i-pause" viewBox="0 0 24 24">
+      <rect x="8" y="6.5" width="2.6" height="11"/>
+      <rect x="13.4" y="6.5" width="2.6" height="11"/>
+    </symbol>
+
+    <!-- ⏮ 回到开头：竖条 + 左向三角 -->
+    <symbol id="mp-i-first" viewBox="0 0 24 24">
+      <rect x="6.6" y="6.5" width="2.4" height="11"/>
+      <path d="M17.4 6.5 10.4 12l7 5.5Z"/>
+    </symbol>
+
+    <!-- ◀◀ 后退 5 秒：两个左向三角，中间有明确间隙 -->
+    <symbol id="mp-i-prev" viewBox="0 0 24 24">
+      <path d="M12.1 6.5 5.1 12l7 5.5Z"/>
+      <path d="M19 6.5 12 12l7 5.5Z"/>
+    </symbol>
+
+    <!-- ▶▶ 快进 5 秒：两个右向三角（prev 的镜像） -->
+    <symbol id="mp-i-fwd" viewBox="0 0 24 24">
+      <path d="M11.9 6.5 18.9 12l-7 5.5Z"/>
+      <path d="M5 6.5 12 12l-7 5.5Z"/>
+    </symbol>
+
+    <!-- ⏭ 跳到结尾：右向三角 + 竖条 -->
+    <symbol id="mp-i-last" viewBox="0 0 24 24">
+      <path d="M6.6 6.5 13.6 12l-7 5.5Z"/>
+      <rect x="15" y="6.5" width="2.4" height="11"/>
+    </symbol>
+
+    <!-- ⏏ 弹出：上向三角 + 同宽横线 -->
+    <symbol id="mp-i-eject" viewBox="0 0 24 24">
+      <path d="M12 5.6 17 11.4H7Z"/>
+      <rect x="7" y="12.8" width="10" height="2.1"/>
+    </symbol>
+
+    <!-- ⟲ 循环：圆环 + 缺口 + 箭头 -->
+    <symbol id="mp-i-loop" viewBox="0 0 24 24">
+      <path d="M12 4.8a7.2 7.2 0 1 0 7.2 7.2" fill="none" stroke="currentColor"
+            stroke-width="2.3" stroke-linecap="butt"/>
+      <path d="M12.1 1.6 16.9 4.9 12.1 8.2Z"/>
+    </symbol>
+
+    <!-- 喇叭（音量开）：方块 + 梯形号角 + 声波弧 -->
+    <symbol id="mp-i-vol" viewBox="0 0 24 24">
+      <rect x="3" y="9.4" width="3.4" height="5.2"/>
+      <path d="M6.4 9.4 11.4 5.6v12.8L6.4 14.6Z"/>
+      <path d="M14.2 9.4a3.6 3.6 0 0 1 0 5.2" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round"/>
+      <path d="M17 6.9a7.2 7.2 0 0 1 0 10.2" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- 喇叭（静音）：同上，声波换成叉 -->
+    <symbol id="mp-i-vol-mute" viewBox="0 0 24 24">
+      <rect x="3" y="9.4" width="3.4" height="5.2"/>
+      <path d="M6.4 9.4 11.4 5.6v12.8L6.4 14.6Z"/>
+      <path d="M14.6 9.6 19.6 14.6M19.6 9.6 14.6 14.6" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- ◀ 微调左（刻度条左端）：小于号样式 -->
+    <symbol id="mp-i-caret-l" viewBox="0 0 24 24">
+      <path d="M14.4 5.4 7.8 12l6.6 6.6V5.4Z"/>
+    </symbol>
+    <!-- ▶ 微调右 -->
+    <symbol id="mp-i-caret-r" viewBox="0 0 24 24">
+      <path d="M9.6 5.4 16.2 12l-6.6 6.6V5.4Z"/>
+    </symbol>
+
+    <!-- 滑杆旋钮（进度条 / 音量条共用）：竖向握柄，含三档刻痕 -->
+    <symbol id="mp-i-knob" viewBox="0 0 12 22">
+      <rect x="0.5" y="0.5" width="11" height="21" fill="currentColor"/>
+      <rect x="3.2" y="6.5" width="1.4" height="9" fill="#8a8580"/>
+      <rect x="5.3" y="6.5" width="1.4" height="9" fill="#8a8580"/>
+      <rect x="7.4" y="6.5" width="1.4" height="9" fill="#8a8580"/>
+    </symbol>
+  </defs>
+</svg>
+
 <!-- ======================================================================
      桌面层
      data-wall = 壁纸方案：img / gray / teal / navy
      data-wallfit = 图片适配：cover / contain / tile
+
      data-texture = 是否叠加网格纹理（1/0）
      ====================================================================== -->
 <div class="desktop wall-img wallfit-cover" id="desktop" data-texture="0">
@@ -117,7 +232,7 @@
       <span class="desk-icon__label">记事本.md</span>
     </a>
 
-    <a class="desk-icon" href="#" id="icoPlayer" title="媒体播放器 · 夢消失 ～ Lost Dream">
+    <a class="desk-icon" href="#" id="icoPlayer" title="媒体播放机 — Dreamy Noise">
       <span class="desk-icon__glyph">
         <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
           <rect x="3" y="4" width="26" height="22" fill="#c0c0c0" stroke="#000000"/>
@@ -210,7 +325,7 @@
       <span class="menu-item" data-menu="tools">工具(<u>T</u>)
         <span class="menu-pop">
           <a class="menu-pop__item" href="#" data-act="open-notepad">打开记事本（Markdown）…</a>
-          <a class="menu-pop__item" href="#" data-act="open-player">打开媒体播放器…</a>
+          <a class="menu-pop__item" href="#" data-act="open-player">打开媒体播放机…</a>
           <span class="menu-pop__sep"></span>
           <a class="menu-pop__item" href="#" data-act="check-source">检查数据源</a>
           <a class="menu-pop__item" href="#" data-act="about-json">关于 bili.json</a>
@@ -704,14 +819,14 @@
   </div><!-- /winNp -->
 
   <!-- ====================================================================
-       媒体播放器窗口（网易云音乐外链 + Windows 3.1 视觉覆盖层）
+       媒体播放机窗口（原生音频播放 + Windows 3.1 视觉）
        ------------------------------------------------------------------
        说明：iframe 位于 music.163.com，跨域使父页面无法读写其内部 DOM。
        因此这里用「同框覆盖层」盖住原生控件区来实现经典外观，
        覆盖层的装饰件不吃事件，热区负责拦截点击穿透。
        工具栏「皮肤」按钮可随时回落到原生控件。
        ==================================================================== -->
-  <div class="window window--mp is-hidden" id="winMp" role="region" aria-label="媒体播放器" aria-hidden="true">
+  <div class="window window--mp is-hidden" id="winMp" role="region" aria-label="媒体播放机" aria-hidden="true">
 
     <!-- ---------- 标题栏 ---------- -->
     <div class="title-bar" id="mpTitlebar">
@@ -725,7 +840,7 @@
           <path d="M3.4 10.8l1.6.7-1.6.7z" fill="#000000"/>
         </svg>
       </span>
-      <span class="title-bar__text" id="mpTitle">媒体播放器 · 夢消失 ～ Lost Dream</span>
+      <span class="title-bar__text" id="mpTitle">媒体播放机 — Dreamy Noise</span>
       <span class="title-bar__btns">
         <button type="button" class="title-btn" id="mpBtnMin" title="最小化" aria-label="最小化">
           <span class="title-btn__glyph"><span class="glyph-min"></span></span>
@@ -739,46 +854,47 @@
       </span>
     </div>
 
-    <!-- ---------- 菜单栏 ---------- -->
+    <!-- ---------- 菜单栏（对齐原生「媒体播放机」：文件/编辑/设备/刻度/帮助） ---------- -->
     <div class="menubar" id="mpMenubar">
       <span class="menu-item" data-menu="mp-file">文件(<u>F</u>)
         <span class="menu-pop">
-          <a class="menu-pop__item" href="#" data-act="mp-open-native">在网易云打开本曲</a>
-          <a class="menu-pop__item" href="#" data-act="mp-reload">重新载入播放器</a>
+          <a class="menu-pop__item" href="#" data-act="mp-open-file">打开音乐文件…</a>
+          <a class="menu-pop__item" href="#" data-act="mp-reload">重新载入本曲</a>
+          <span class="menu-pop__sep"></span>
+          <a class="menu-pop__item" href="#" data-act="mp-open-native">在目录中查看本曲</a>
           <span class="menu-pop__sep"></span>
           <a class="menu-pop__item" href="#" data-act="mp-close">关闭(<u>C</u>)<span class="menu-pop__key">Esc</span></a>
         </span>
       </span>
-      <span class="menu-item" data-menu="mp-view">查看(<u>V</u>)
+      <span class="menu-item" data-menu="mp-edit">编辑(<u>E</u>)
         <span class="menu-pop">
-          <a class="menu-pop__item is-checked" href="#" data-act="mp-skin" id="mpMiSkin">经典皮肤（覆盖原生控件）</a>
-          <a class="menu-pop__item" href="#" data-act="mp-native" id="mpMiNative">原生控件（可精确控制）</a>
+          <a class="menu-pop__item" href="#" data-act="mp-copy-title">复制曲名</a>
+          <a class="menu-pop__item" href="#" data-act="mp-reset">回到开头</a>
+        </span>
+      </span>
+      <span class="menu-item" data-menu="mp-device">设备(<u>D</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item is-checked" href="#" data-act="mp-device-speaker" id="mpMiDevice">扬声器（默认输出）</a>
           <span class="menu-pop__sep"></span>
-          <a class="menu-pop__item" href="#" data-act="mp-reset">重置视觉进度</a>
+          <a class="menu-pop__item" href="#" data-act="mp-volume">音量控制…</a>
+        </span>
+      </span>
+      <span class="menu-item" data-menu="mp-scale">刻度(<u>S</u>)
+        <span class="menu-pop">
+          <a class="menu-pop__item is-checked" href="#" data-act="mp-scale-time" id="mpMiScaleTime">时间</a>
+          <a class="menu-pop__item" href="#" data-act="mp-scale-track" id="mpMiScaleTrack">曲目</a>
         </span>
       </span>
       <span class="menu-item" data-menu="mp-help">帮助(<u>H</u>)
         <span class="menu-pop">
-          <a class="menu-pop__item" href="#" data-act="mp-help">关于覆盖层与跨域…</a>
+          <a class="menu-pop__item" href="#" data-act="mp-help">关于媒体播放机…</a>
         </span>
       </span>
     </div>
 
-    <!-- ---------- 工具栏 ---------- -->
+    <!-- ---------- 工具栏（对齐参考图：重载 | 音量面板开关 | 播放列表） ---------- -->
     <div class="toolbar">
-      <button type="button" class="tb-btn is-on" id="mpTbSkin" title="视觉覆盖：开（点击回落到原生控件）" aria-pressed="true">
-        <span class="tb-btn__ico">
-          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            <rect x="1.5" y="2.5" width="13" height="11" fill="#c0c0c0" stroke="#000000"/>
-            <rect x="2.5" y="3.5" width="11" height="2" fill="#000080"/>
-            <rect x="2.5" y="6.5" width="11" height="3" fill="#ffffff" stroke="#000000"/>
-            <rect x="3" y="7" width="5" height="2" fill="#000080"/>
-          </svg>
-        </span>
-        <span class="tb-btn__label">皮肤</span>
-      </button>
-
-      <button type="button" class="tb-btn" id="mpTbReload" title="重新载入播放器">
+      <button type="button" class="tb-btn" id="mpTbReload" title="重新载入本曲（回到开头）">
         <span class="tb-btn__ico">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
             <path d="M13 8a5 5 0 1 1-1.6-3.7" fill="none" stroke="#008000" stroke-width="1.6"/>
@@ -790,38 +906,32 @@
 
       <span class="tb-sep"></span>
 
-      <button type="button" class="tb-btn" id="mpTbPrev" title="上一首（覆盖层拦截）">
+      <button type="button" class="tb-btn" id="mpTbVolume" title="音量面板：隐藏 / 显示" aria-pressed="false">
         <span class="tb-btn__ico">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            <rect x="2" y="3" width="2" height="10" fill="#000000"/>
-            <path d="M13 3v10L5 8z" fill="#000000"/>
+            <path d="M2 6h2.2L7 3.4v9.2L4.2 10H2z" fill="#000080"/>
+            <path d="M9 5.4a3.4 3.4 0 0 1 0 5.2" fill="none" stroke="#000080" stroke-width="1.2"/>
+            <path d="M11 3.4a6 6 0 0 1 0 9.2" fill="none" stroke="#000080" stroke-width="1.2"/>
           </svg>
         </span>
-        <span class="tb-btn__label">上一首</span>
+        <span class="tb-btn__label">音量</span>
       </button>
 
-      <button type="button" class="tb-btn" id="mpTbPlay" title="播放（视觉）" aria-pressed="false">
+      <button type="button" class="tb-btn is-on" id="mpTbList" title="播放列表：已显示（点击隐藏）" aria-pressed="true">
         <span class="tb-btn__ico">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            <path d="M4 2.5l9 5.5-9 5.5z" fill="#000000"/>
+            <rect x="2" y="3" width="12" height="1.6" fill="#000000"/>
+            <rect x="2" y="7" width="12" height="1.6" fill="#000000"/>
+            <rect x="2" y="11" width="12" height="1.6" fill="#000000"/>
+            <path d="M12.4 8.6v3.6l2-1z" fill="#000080"/>
           </svg>
         </span>
-        <span class="tb-btn__label">播放</span>
-      </button>
-
-      <button type="button" class="tb-btn" id="mpTbNext" title="下一首（覆盖层拦截）">
-        <span class="tb-btn__ico">
-          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            <rect x="12" y="3" width="2" height="10" fill="#000000"/>
-            <path d="M3 3v10l8-5z" fill="#000000"/>
-          </svg>
-        </span>
-        <span class="tb-btn__label">下一首</span>
+        <span class="tb-btn__label">列表</span>
       </button>
 
       <span class="tb-sep"></span>
 
-      <button type="button" class="tb-btn" id="mpTbHelp" title="关于覆盖层与跨域限制">
+      <button type="button" class="tb-btn" id="mpTbHelp" title="关于媒体播放机">
         <span class="tb-btn__ico">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
             <circle cx="8" cy="8" r="6.6" fill="#ffffcc" stroke="#000080"/>
@@ -834,67 +944,121 @@
     </div>
 
     <!-- ==================================================================
-         舞台：固定尺寸的 iframe + 同框覆盖层
+         舞台：原生媒体播放机布局
+           · 主刻度条（细长进度轨道 + 两端三角微调 + 读数）
+           · 底部传输按钮排：▶ ■ ⏸ | ⏮ ⏪ ▶▶ ⏩ | ⏏ ⏭
+           · 音量面板与播放列表（默认折叠，由工具栏开关切换）
+         音频真实播放，进度/时长/音量均为实测值。
          ================================================================== -->
     <div class="workspace mp-workspace" id="mpWorkspace">
       <div class="mp-stage" id="mpStage">
 
-        <!-- 真实播放器：宽 330 高 86（含 66 的播放器本体 + 上下留白） -->
-        <iframe class="mp-frame" id="mpFrame"
-                frameborder="no" border="0" marginwidth="0" marginheight="0"
-                width="330" height="86" scrolling="no"
-                data-src="//music.163.com/outchain/player?type=2&amp;id=22636810&amp;auto=1&amp;height=66"
-                title="网易云音乐外链播放器"></iframe>
+        <!-- 真实音频元素（不绘制，仅作播放引擎） -->
+        <audio id="mpAudio" preload="metadata"
+               src="assets/audio/dreamy-noise.mp3"></audio>
 
-        <!-- 覆盖层：与 iframe 精确同框，营造 Windows 3.1 控件外观 -->
-        <div class="mp-cover" id="mpCover" aria-hidden="true">
+        <!-- ---------- 主刻度条 ---------- -->
+        <div class="mp-scalerow">
+          <button type="button" class="mp-spin" id="mpSpinLeft" title="刻度左移" aria-label="刻度左移">
+            <svg class="mp-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-caret-l" xlink:href="#mp-i-caret-l"/></svg>
+          </button>
 
-          <!-- 第一行：图标 + 标题 + 播放指示灯 -->
-          <div class="mp-cover__top">
-            <svg class="mp-cover__icon" viewBox="0 0 16 16" aria-hidden="true">
-              <rect x="1" y="2" width="14" height="11" fill="#c0c0c0" stroke="#000000"/>
-              <rect x="2" y="3" width="12" height="1.6" fill="#000080"/>
-              <rect x="2" y="6" width="12" height="3" fill="#ffffff" stroke="#000000"/>
-              <rect x="2.6" y="6.6" width="6" height="1.8" fill="#000080"/>
+          <div class="mp-scale" id="mpScale" role="slider" tabindex="0"
+               aria-label="播放进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="mp-scale__ticks" aria-hidden="true"></div>
+            <div class="mp-scale__bar" id="mpBar"></div>
+            <svg class="mp-scale__knob" id="mpKnob" viewBox="0 0 12 22" aria-hidden="true" focusable="false">
+              <use href="#mp-i-knob" xlink:href="#mp-i-knob"/>
             </svg>
-            <span class="mp-cover__title" id="mpCoverTitle">夢消失 ～ Lost Dream — 上海アリス幻樂団</span>
-            <span class="mp-cover__led" aria-hidden="true"></span>
           </div>
 
-          <!-- 进度条（点击可移动「视觉」进度，不触碰真实播放位置） -->
-          <div class="mp-cover__track" id="mpTrack" title="视觉进度（不读取真实播放位置）">
-            <div class="mp-cover__bar" id="mpBar"></div>
+          <button type="button" class="mp-spin" id="mpSpinRight" title="刻度右移" aria-label="刻度右移">
+            <svg class="mp-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-caret-r" xlink:href="#mp-i-caret-r"/></svg>
+          </button>
+        </div>
+
+        <!-- 刻度读数 -->
+        <div class="mp-readout">
+          <span class="mp-readout__elapsed" id="mpTime">00:00</span>
+          <span class="mp-readout__sep" id="mpTimeSep">/</span>
+          <span class="mp-readout__total" id="mpDur">--:--</span>
+          <span class="mp-readout__spacer"></span>
+          <span class="mp-readout__track" id="mpCoverTitle">ゆうかなで — Dreamy Noise</span>
+        </div>
+
+        <!-- ---------- 底部传输按钮排 ---------- -->
+        <div class="mp-pad">
+          <!-- 组 1：播放 / 停止 / 暂停 -->
+          <button type="button" class="mp-tbtn" id="mpBtnPlay" title="播放" aria-label="播放" aria-pressed="false">
+            <svg class="mp-ico mp-ico--play" id="mpPlayGlyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-play" xlink:href="#mp-i-play"/></svg>
+          </button>
+          <button type="button" class="mp-tbtn" id="mpBtnStop" title="停止" aria-label="停止">
+            <svg class="mp-ico mp-ico--stop" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-stop" xlink:href="#mp-i-stop"/></svg>
+          </button>
+          <button type="button" class="mp-tbtn" id="mpBtnPause" title="暂停" aria-label="暂停">
+            <svg class="mp-ico mp-ico--pause" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-pause" xlink:href="#mp-i-pause"/></svg>
+          </button>
+
+          <span class="mp-pad__sep"></span>
+
+          <!-- 组 2：首 / 上一首 / 快进 / 末 -->
+          <button type="button" class="mp-tbtn" id="mpBtnFirst" title="回到开头" aria-label="回到开头">
+            <svg class="mp-ico mp-ico--first" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-first" xlink:href="#mp-i-first"/></svg>
+          </button>
+          <button type="button" class="mp-tbtn" id="mpBtnPrev" title="后退 5 秒" aria-label="后退 5 秒">
+            <svg class="mp-ico mp-ico--prev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-prev" xlink:href="#mp-i-prev"/></svg>
+          </button>
+          <button type="button" class="mp-tbtn" id="mpBtnFwd" title="快进 5 秒" aria-label="快进 5 秒">
+            <svg class="mp-ico mp-ico--fwd" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-fwd" xlink:href="#mp-i-fwd"/></svg>
+          </button>
+          <button type="button" class="mp-tbtn" id="mpBtnLast" title="跳到结尾" aria-label="跳到结尾">
+            <svg class="mp-ico mp-ico--last" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-last" xlink:href="#mp-i-last"/></svg>
+          </button>
+
+          <span class="mp-pad__sep"></span>
+
+          <!-- 组 3：弹出 / 音量 / 循环（对齐参考图右端两个「⏏ ⏭」位） -->
+          <button type="button" class="mp-tbtn" id="mpBtnEject" title="停止并归零" aria-label="停止并归零">
+            <svg class="mp-ico mp-ico--eject" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-eject" xlink:href="#mp-i-eject"/></svg>
+          </button>
+          <button type="button" class="mp-tbtn" id="mpBtnLoop" title="循环播放：关" aria-label="循环播放" aria-pressed="false">
+            <svg class="mp-ico mp-ico--loop" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-loop" xlink:href="#mp-i-loop"/></svg>
+          </button>
+        </div>
+
+        <!-- ---------- 音量面板（由工具栏「音量」开关切换） ---------- -->
+        <div class="mp-panel mp-panel--volume" id="mpVolPanel" hidden>
+          <div class="mp-panel__title">音量</div>
+          <div class="mp-vol">
+            <button type="button" class="mp-vol__mute" id="mpBtnMute" title="静音" aria-label="静音" aria-pressed="false">
+              <svg class="mp-ico mp-ico--vol" id="mpMuteGlyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#mp-i-vol" xlink:href="#mp-i-vol"/></svg>
+            </button>
+            <div class="mp-vol__slot" id="mpVolSlot" role="slider" tabindex="0"
+                 aria-label="音量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80">
+              <div class="mp-vol__bar" id="mpVolBar"></div>
+              <svg class="mp-vol__knob" id="mpVolKnob" viewBox="0 0 12 22" aria-hidden="true" focusable="false">
+                <use href="#mp-i-knob" xlink:href="#mp-i-knob"/>
+              </svg>
+            </div>
+            <span class="mp-vol__num" id="mpVolNum">80%</span>
           </div>
-          <div class="mp-cover__time" id="mpTime">00:00 / 00:00</div>
+        </div>
 
-          <!-- 传输按钮组（装饰件，不吃事件） -->
-          <div class="mp-cover__pad">
-            <span class="mp-cbtn" id="mpBtnPrev" title="上一首">
-              <span class="mp-glyph mp-glyph--prev"></span>
-            </span>
-            <span class="mp-cbtn" id="mpBtnPlay" title="播放（视觉）" aria-pressed="false">
-              <span class="mp-glyph mp-glyph--play" id="mpPlayGlyph"></span>
-            </span>
-            <span class="mp-cbtn" id="mpBtnNext" title="下一首">
-              <span class="mp-glyph mp-glyph--next"></span>
-            </span>
-          </div>
+        <!-- ---------- 播放列表面板（默认展开；工具栏「列表」开关可折叠） ---------- -->
+        <div class="mp-panel mp-panel--list" id="mpListPanel">
+          <div class="mp-panel__title">播放列表</div>
+          <ul class="mp-list" id="mpList" role="listbox" aria-label="播放列表"></ul>
+        </div>
 
-          <!-- 热区：浮在装饰按钮之上，pointer-events:auto，吃掉点击穿透 -->
-          <button type="button" class="mp-hot mp-hot--prev" data-hot="prev" title="上一首（拦截点击）" aria-label="上一首"></button>
-          <button type="button" class="mp-hot mp-hot--play" data-hot="play" title="播放 / 暂停（拦截点击）" aria-label="播放或暂停"></button>
-          <button type="button" class="mp-hot mp-hot--next" data-hot="next" title="下一首（拦截点击）" aria-label="下一首"></button>
-
-        </div><!-- /mp-cover -->
       </div><!-- /mp-stage -->
     </div><!-- /mp-workspace -->
 
     <!-- ---------- 状态栏 ---------- -->
     <div class="statusbar">
       <span class="statusbar__pane" id="mpStatusMain" style="width:118px;">就绪</span>
-      <span class="statusbar__pane" id="mpStatusMode" style="width:92px;">经典皮肤</span>
-      <span class="statusbar__pane statusbar__pane--grow" id="mpStatusTrack">夢消失 ～ Lost Dream · 上海アリス幻樂団</span>
-      <span class="statusbar__pane statusbar__pane--right" id="mpStatusNote">模拟进度</span>
+      <span class="statusbar__pane" id="mpStatusMode" style="width:92px;">音量面板：关</span>
+      <span class="statusbar__pane statusbar__pane--grow" id="mpStatusTrack">ゆうかなで — Dreamy Noise</span>
+      <span class="statusbar__pane statusbar__pane--right" id="mpStatusNote">00:00</span>
     </div>
 
   </div><!-- /winMp -->
@@ -944,7 +1108,7 @@
         <span class="task-btn__label">记事本 · 未命名.md</span>
       </button>
 
-      <button type="button" class="task-btn is-hidden" id="taskBtnMp" title="媒体播放器 · 夢消失 ～ Lost Dream">
+      <button type="button" class="task-btn is-hidden" id="taskBtnMp" title="媒体播放机 — Dreamy Noise">
         <span class="task-btn__ico">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
             <rect x="1" y="2" width="14" height="11" fill="#c0c0c0" stroke="#000000"/>
@@ -955,7 +1119,7 @@
             <path d="M3.4 10.8l1.6.7-1.6.7z" fill="#000000"/>
           </svg>
         </span>
-        <span class="task-btn__label">媒体播放器</span>
+        <span class="task-btn__label">媒体播放机</span>
       </button>
     </span>
 
@@ -1010,7 +1174,7 @@
       </a>
       <a class="startmenu__item" href="#" data-act="open-player">
         <i><svg viewBox="0 0 20 20" width="20" height="20"><rect x="2" y="3" width="16" height="13" fill="#c0c0c0" stroke="#000000"/><rect x="3.4" y="4.4" width="13.2" height="2.2" fill="#000080"/><rect x="3.4" y="8" width="13.2" height="3.6" fill="#ffffff" stroke="#000000"/><rect x="4.2" y="9" width="7" height="1.8" fill="#000080"/><rect x="4.2" y="12.6" width="4" height="2.4" fill="#dfdfdf" stroke="#000000"/><path d="M5.4 13.4l2 1-2 1z" fill="#000000"/></svg></i>
-        媒体播放器
+        媒体播放机
       </a>
       <span class="startmenu__sep"></span>
       <a class="startmenu__item" href="#" data-act="dialog-settings">

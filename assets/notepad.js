@@ -732,6 +732,11 @@
     var mask = $('modalMask');
     if (mask) mask.classList.add('is-open');
     dlg.classList.add('is-open');
+    /* 走共享对话框模块完成落位（固化居中为像素 + 夹回视口）。
+       若不调用，left/top 会停留在上一次的残留值，且无拖动能力。 */
+    if (global.WinDialog && typeof global.WinDialog.place === 'function') {
+      global.WinDialog.place(dlg, $('winNp'));
+    }
     if (ok) ok.focus();
   }
 

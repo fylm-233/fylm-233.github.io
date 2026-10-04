@@ -41,7 +41,9 @@ winclassic-blog/                     ← 仓库根目录，同时也是 Pages �
 │   ├── app.js                       ← 主窗口交互脚本（ES2017；含共享窗口管理器 WinWM）
 │   ├── markdown.js                  ← 轻量 Markdown 解析器（无第三方依赖，挂 window.WinMD）
 │   ├── notepad.js                   ← 记事本窗口（Markdown 渲染 / 源码编辑，挂 window.WinNotepad）
-│   ├── player.js                    ← 媒体播放器窗口（网易云外链 + 视觉覆盖层，挂 window.WinPlayer）
+│   ├── player.js                    ← 媒体播放器窗口（原生 HTMLAudioElement 播放，挂 window.WinPlayer）
+│   ├── audio/
+│   │   └── dreamy-noise.mp3         ← 内置音源（12.92 MB，与页面同源，无跨域限制）
 │   └── img/
 │       └── wallpaper.jpg            ← 默认桌面壁纸（1920×1080）
 ├── scripts/
@@ -89,7 +91,7 @@ winclassic-blog/                     ← 仓库根目录，同时也是 Pages �
 - 工具栏（刷新 / 空间 / 投稿 / 动态 / 数据 / 设置 / 帮助），悬停凸起、按下凹陷
 - 地址栏 + 「转到」按钮
 - 开始菜单（含左侧竖排蓝色标题栏）
-- 模态消息框（信息 / 警告 / 错误三种图标）
+- 模态消息框（信息 / 警告 / 错误三种图标；**可拖动标题栏移动，且跟随父窗口联动**）
 - Windows Classic 分段式进度条（加载动画，纯 CSS `@keyframes` 驱动，无定时器）
 - 投稿「缩略图 / 列表」双视图切换
 - 分区分布数据条
@@ -168,83 +170,264 @@ window.WinWM = {
 
 ---
 
-## 二之三、媒体播放器窗口（网易云外链 + 视觉覆盖）
+## 二之三、媒体播放器窗口（原生音频 + Windows 3.1 控件）
 
-一个与主窗口、记事本并列的独立窗口，内嵌网易云音乐外链播放器，
-并叠加一层 Windows 3.1 风格的控件外观。
+一个与主窗口、记事本并列的独立窗口，外观对齐 **原生 Windows「媒体播放机」**
+（标题栏 → 单行菜单栏 → 细长刻度条 → 底部传输按钮排），
+音频由页面**自带的本地文件**经 `<audio>` 播放。
 
-内嵌的 iframe（与需求原文一致，宽 330 高 86）：
+### 1. 为什么放弃 iframe：跨域是死路
 
-```html
-<iframe frameborder="no" border="0" marginwidth="0" marginheight="0"
-        width=330 height=86
-        src="//music.163.com/outchain/player?type=2&id=22636810&auto=1&height=66"></iframe>
-```
+此前的实现内嵌网易云外链播放器，并叠加一层视觉覆盖层。该方案有**不可回避**的结构性缺陷：
 
-### 1. 跨域限制与可行的替代方案（必须先讲清楚）
-
-该 iframe 位于 `music.163.com`，与本站**不同源**。同源策略使父文档：
-
-- 无法读取 iframe 内部 DOM（拿不到 `contentDocument`）
-- 无法向内部元素注入样式
-- 无法重排内部控件位置
-
-因此「把网易云原生按钮改造成 Windows 3.1 按钮」在**纯前端、无反向代理**的前提下
-不可能真正实现。本页采用业界通行的替代方案，并且不虚构任何跨域能力：
-
-| 目标 | 实现方式 |
+| 缺陷 | 原因 |
 | --- | --- |
-| **视觉替换** | 在 iframe 之上铺一层**同尺寸同位置**的覆盖层 `.mp-cover`，像素级盖住原生控件区 |
-| **点击穿透拦截** | 覆盖层的装饰件一律 `pointer-events:none`（不吃事件）；真正拦截的是三个热区 `.mp-hot`，它们 `pointer-events:auto` 且 `z-index` 高于覆盖层装饰件 |
-| **控件精确定位** | 覆盖层与 iframe 的 `left/top/width/height` 由 JS 统一写入（`updateStageMetrics()`），二者始终同框；热区坐标与装饰按钮坐标严丝合缝（实测 Δx=0、Δy≤1px） |
-| **不能真的控制播放** | `play/prev/next` 只更新本地视觉状态，并**尽力而为**地 `postMessage` 广播一次（对方未声明接受，实际预期无效，且无副作用） |
-| **进度条** | 原生进度条同样被盖住；覆盖层用自驱计时器呈现「视觉进度」，状态栏明确标注「模拟」，不谎称与真实播放位置同步 |
-| **功能底线** | 工具栏「皮肤」按钮可整体关闭覆盖层，**回落到网易云原生控件**，保证「至少能正常播放/暂停」这一底线始终可用 |
+| 无法真实控制播放 | iframe 位于 `music.163.com`，与本站不同源；父文档拿不到 `contentDocument`，`postMessage` 对方亦未声明接受 |
+| 进度条只能是假的 | 读不到 `currentTime`，只能用自驱计时器模拟，与真实播放位置必然漂移 |
+| 点击拦截不完整 | 覆盖层热区只能覆盖有限的几个按钮，iframe 内其余区域（歌词、音量、链接）依然会响应 |
+| 外观无法像素级一致 | 原生控件的内边距、字体、hover 态由对方页面决定，覆盖层只能「盖住」，不能「改造」 |
 
-### 2. 覆盖层的结构
+**结论**：在纯前端、无反向代理的前提下，「把跨域 iframe 改造成经典控件」
+不可能真正实现。因此在本次修订中**彻底移除 iframe**，
+改为播放页面自带的音频文件——所有控件从此作用于**真实**的播放状态。
+
+### 2. 当前架构
 
 ```
-.mp-stage                    舞台：居中摆放固定尺寸的 iframe（两侧留经典灰底）
-├── iframe.mp-frame          真实播放器，330×86，懒装载（首次打开才请求）
-└── .mp-cover                覆盖层，与 iframe 同框
-    ├── .mp-cover__top       曲目图标 + 真实曲名 + 播放指示灯
-    ├── .mp-cover__track     进度槽（可点，仅移动视觉进度）
-    ├── .mp-cover__time      00:00 / 04:04
-    ├── .mp-cover__pad       三个装饰按钮（pointer-events:none）
-    └── .mp-hot × 3          三个热区（pointer-events:auto，拦截点击）
+#winMp                              播放器窗口（独立窗口，走 window.WinWM）
+└── .mp-workspace                   工作区（可滚动）
+    └── .mp-stage                   舞台
+        ├── <audio id="mpAudio">    真实音频引擎，src=assets/audio/dreamy-noise.mp3
+        ├── .mp-scalerow            刻度条行
+        │   ├── .mp-spin × 2        两端三角微调按钮（±5 秒）
+        │   └── .mp-scale           刻度条本体（role="slider"，可拖动 seek）
+        ├── .mp-readout             读数（00:00 / 04:04 + 曲目名）
+        ├── .mp-pad                 传输按钮排（9 个按钮 + 2 个分隔符）
+        ├── #mpVolPanel             音量面板（hidden 切换）
+        └── #mpListPanel            播放列表面板（默认展开，hidden 折叠）
 ```
 
-**曲目元数据**：网易云外链只传 `id`，界面无法反查歌名（跨域）。
-因此 `player.js` 内置了本站曲目的元数据（取自网易云歌曲详情接口）：
+### 3. 全部控件都是真实值
 
-- 曲名 `夢消失 ～ Lost Dream`
-- 艺术家 `上海アリス幻樂団`
-- 专辑 `東方夢時空 ～ Phantasmagoria of Dim.Dream.`
+音频与页面**同源**（`assets/audio/dreamy-noise.mp3`），因此不存在任何跨域限制。
+所有交互直接读写 `HTMLAudioElement`：
 
-### 3. 按钮字形的兼容性处理（一个真实的坑）
+| 控件 | 绑定的真实属性 / 方法 | 事件 |
+| --- | --- | --- |
+| 播放 / 暂停 | `play()` / `pause()` | `play` / `pause` |
+| 停止 | `pause()` + `currentTime = 0` | — |
+| 刻度条拖动 | 读写 `currentTime`（按 `duration` 换算比例） | `timeupdate`（拖动期间用 `st.scrubbing` 抑制覆写） |
+| 时间读数 | `currentTime` / `duration` | `timeupdate` / `loadedmetadata` / `durationchange` |
+| 快进 / 后退 | `currentTime += ±5` | — |
+| 跳到首 / 尾 | `currentTime = 0` / `duration` | — |
+| 音量滑杆 | `volume`（0–1） | `volumechange` |
+| 静音 | `muted` | — |
+| 循环 | `loop` | `ended`（未循环则停在末尾） |
 
-覆盖层的播放/上一首/下一首字形用 **`border` 三角形**拼成，
-**刻意没有使用 `clip-path`** —— `clip-path` 需要 Edge 79+，
-在目标基线 EdgeHTML 18 上会完全失效，三角形会退化成实心方块。
-`border` 三角形自 CSS1 起可用，是唯一能覆盖到 Edge 18 的画法。
+`duration` 在 `loadedmetadata` 前为 `NaN`，此时界面显示 `--:--`，
+拖动刻度条会被安全忽略（`if (d <= 0) return;`）。
 
-三个字形的居中偏移量均**由实测几何反推**（而非估算），保证在 26×17 的
-按钮内视觉居中：实测三者的可视中心与按钮中心完全重合。
+### 4. 滑杆的统一实现（鼠标 / 触摸 / 键盘三通道）
 
-### 4. 打开播放器的四条入口
+刻度条与音量条共用 `bindSlider(el, onRatio, onStart, onEnd)`：
 
-1. 桌面图标 **播放器**
+- **鼠标**：`mousedown` → 在 `document` 上挂 `mousemove` / `mouseup`
+  （而非在元素上挂 `mousemove`，这样拖出元素范围也不会断开）
+- **触摸**：`touchstart` / `touchmove` / `touchend`，配合 `passive: false` 以允许 `preventDefault`
+- **键盘**：`ArrowLeft/Up` 步进 ±2%，`ArrowRight/Down` 步进 ±2%，`Home` / `End` 到两端
+
+拖动期间置 `st.scrubbing = true`，`timeupdate` 处理器会跳过 UI 渲染，
+避免音频推进把用户正在拖动的滑块"拽回去"。
+
+### 5. 按钮图标全部用 SVG 矢量图（几何即所见）
+
+播放 / 暂停 / 停止 / 首 / 前 / 后 / 末 / 出仓 / 循环 / 喇叭（含静音）
+共 11 个图标，以及进度条与音量条的拖动旋钮，
+**全部由内联 SVG `<symbol>` + `<use>` 画成，不再使用 `border` 三角形或任何字符字形**。
+
+**为什么换掉 border 三角形**：`border` 三角形是「用边框伪装成图形」的 hack ——
+元素的 **border box 与可见墨迹不重合**，多部件字形（`⏮` = 竖条+三角、`◀◀` = 两三角）
+必须手推 `--gx` / `--gw` 才能居中，且 **sub-pixel 取整会随容器尺寸漂移**。
+实测到的两个真实缺陷：旧版 `⏭` 被按钮右缘裁切、`⏏` 整体右偏 5px。
+SVG 有确定的 `viewBox`，**几何即所见**，`preserveAspectRatio` 默认等比缩放，
+居中与稳定性**由坐标系保证**，CSS 无需任何偏移补偿。
+
+**图标精灵表**：15 个 `<symbol>` 集中定义在 `index.html` 顶部的
+`<svg class="mp-sprite">`（`width/height:0`，不进布局），引用处写
+`<use href="#mp-i-xxx" xlink:href="#mp-i-xxx"/>`。
+**两条引用都写**：EdgeHTML 18 只认 `xlink:href`，现代浏览器认 `href`。
+
+**三个几何硬约束**（对应用户提出的三条要求）：
+
+1. **严格居中**：所有 symbol 共用 `viewBox="0 0 24 24"`，图元画在以 `(12,12)` 为心的
+   对称范围内 → 图形几何中心恒等于 viewBox 中心。容器侧用
+   `.mp-ico { position:absolute; top:0; right:0; bottom:0; left:0; margin:auto; }`
+   把 SVG 盒子居中 → **图标中心恒与容器中心重合**，误差 0（实测 `|off| = 0.000px`）。
+2. **容器宽高变化时不漂移**：居中由「四边归零 + `margin:auto`」完成，
+   与容器宽高**解耦**；缩放由 `width/height: calc(var(--ico-size) * var(--ico-scale,1))`
+   驱动，`--ico-scale` 只改系数，**不改中心**。
+3. **不同尺寸下几何比例一致**：每个图标只声明一个 `--ico-size`（设计尺寸），
+   缩放统一乘以 `--ico-scale`。窄视口只需改 `.mp-tbtn { --ico-scale: 0.9 }` 一处，
+   全部图标**等比**缩小，且**恒为正方形**（实测 14×14 → 12.594×12.594，w==h）。
+
+**旋钮（进度条 / 音量条）**：`viewBox="0 0 12 22"`，CSS 显式写 `width:7px; height:12.83px`
+（= 7px × 22/12，与 viewBox 同比，故**不需要** `preserveAspectRatio="none"`，图形不失真）。
+定位用 `top:50%; left:<百分比>; transform:translate(-50%,-50%)`：
+`left` 是**百分比锚点**（随轨道长度线性伸缩），`translate` 让旋钮**以自身中心对齐锚点**，
+**与旋钮尺寸、与轨道高度都无关**。
+（这里不能用 `margin:auto` —— 要的是「锚点居中」而非「容器居中」。
+也不能用 `top:1px; bottom:1px` 拉伸 —— 高度由内容驱动时会过约束，实测中心上偏 2.586px。）
+
+**SVG 元素的 `className` 是只读的**：`SVGElement.className` 返回 `SVGAnimatedString`
+（只有 getter），`el.className = '...'` 会抛 `TypeError` 并**中断整段初始化**。
+改类名一律走 `setAttribute('class', ...)`，见 `player.js` 的 `setSvgClass()`。
+`▶` / `⏸` 与喇叭图标的切换只改 `<use>` 的 `href`，**不动盒子尺寸**，
+尺寸档位由类名（`mp-ico--play` / `mp-ico--pause` / `mp-ico--vol`）负责。
+
+### 6. 打开播放器的四条入口
+
+1. 桌面图标 **媒体播放机**
 2. 菜单栏 `工具(T) → 打开媒体播放器…`
-3. 开始菜单 → 媒体播放器
+3. 开始菜单 → 媒体播放机
 4. 任务栏按钮（打开后出现；语义与其他窗口一致：非活动→激活，已活动→最小化）
 
-### 5. 播放器内的菜单
+### 7. 播放器内的菜单（对齐参考图的五菜单结构）
 
 | 菜单 | 项 | 说明 |
 | --- | --- | --- |
-| 文件(F) | 在网易云打开本曲 / 重新载入播放器 / 关闭 | 重载会带时间戳强制重新请求 |
-| 查看(V) | 经典皮肤 / 原生控件 / 重置视觉进度 | 皮肤与「原生」互斥勾选 |
-| 帮助(H) | 关于覆盖层与跨域… | 弹窗如实说明上述限制 |
+| **文件(F)** | 打开音乐文件… / 重新载入本曲 / 在目录中查看本曲 / 关闭(C) Esc | 「重新载入」回到开头并重新计次 |
+| **编辑(E)** | 复制曲名 / 回到开头 | 复制走 `navigator.clipboard`，含 `execCommand` 兜底 |
+| **设备(D)** | 扬声器（默认输出）✓ / 音量控制… | 勾选态反映 `muted`；「音量控制…」展开音量面板 |
+| **刻度(S)** | 时间 ✓ / 曲目 | 互斥勾选，切换读数区的分隔符与状态栏措辞 |
+| **帮助(H)** | 关于媒体播放机… | 弹窗说明真实播放能力与键盘快捷键 |
+
+### 7. 工具栏、初始状态与自动播放
+
+工具栏三个开关：**音量**（展开 `#mpVolPanel`）、**列表**（展开 `#mpListPanel`）、**帮助**。
+
+**初始状态**：播放列表**默认展开**（`#mpListPanel` 不带 `hidden`，工具栏「列表」按钮初始即
+`is-on` + `aria-pressed="true"`）。理由：原生播放机打开窗口即可看到全部曲目，不会把列表
+藏在开关后面。工具栏按钮用于**折叠**它，状态由 `setListPanel()` 单点维护。
+
+**自动播放**：页面加载后，音频在**后台**自动开始播放第一首，无需用户点击；播放器窗口
+**不会**自动弹出（按产品决定，保持由任务栏图标唤起）。
+
+触发时机同时监听 `loadedmetadata` **与** `canplay`，并在初始化时探测 `readyState >= 1`
+补触发一次。原因：`<audio preload="metadata">` 往往在页面脚本执行**之前**就已完成元数据
+加载，若只绑事件而不做补触发，首次自动播放会稳定地「错过事件窗口」而静默失败。实现见
+`tryAutoplay()` / `onAudioReady()`，有两条硬约束：
+
+1. **只尝试一次**（`st.autoAttempted`）。若每次事件都重新拉起播放，用户按下的「暂停」会被
+   下一次事件覆盖掉，按钮形同失效。
+2. **用户已交互则放弃**（`st.userInteracted`）。**所有**传输按钮（`bindPress` 统一处理）、
+   `togglePlay()` / `stop()` / `seekTo()` 都会置位该标记——用户表达过意图后，自动播放不再
+   抢方向盘。
+
+**被浏览器策略拒绝时的两级兜底**（Chromium / Safari / Firefox 默认会拦截非静音自动播放）：
+
+1. **静音兜底**（`onAutoplayRejected()`）：先以 `muted` 方式 `play()`。浏览器对静音自动播放
+   **无手势要求，必定成功**。状态栏提示「已静音播放（点击取消静音）」。
+2. **首次手势重试**（`onFirstGesture()`）：监听 `document` 的 `pointerdown` / `keydown` /
+   `touchstart`（`once` + `passive`）。用户在页面上的第一次点击/按键/触摸即自动解除静音并
+   恢复有声播放，无需专门去找播放按钮。若此前已处于静音兜底态，只需改写 `muted` 标志，
+   音频本就在播，不必再调一次 `play()`。
+
+> **验证注意**：`Emulation.setAutoplayPolicy` 在本机 Edge 构建中**不存在**（返回 `-32601`），
+> 无法通过 CDP 切换策略。要复现「被拒」路径，可用 `Page.addScriptToEvaluateOnNewDocument`
+> 在文档脚本执行前替换 `HTMLMediaElement.prototype.play`，对非静音调用返回
+> `NotAllowedError` 拒绝、静音调用放行。`autoplay-verify.js` 即用此法覆盖该分支。
+
+**传输按钮排的间距与图标系统**（`classic.css` 15c 章节）：
+
+- 间距用**相邻兄弟选择器**而非容器 `gap`——flex 容器的 `gap` 需 Edge 84+，本项目基线是
+  EdgeHTML 18。按钮↔按钮 3px（`.mp-tbtn + .mp-tbtn`），分隔符左右各 5px（分隔符自带
+  `margin: 0 5px`）。**规则必须拆成两条写**：`.mp-pad__sep + .mp-tbtn { margin-left: 0 }` 与
+  `.mp-tbtn + .mp-pad__sep` 若并列进同一个块，会把分隔符自己的 `margin-left` 也清零，
+  使「按钮—分隔符」塌成 0px。
+- 首位按钮无左外边距、末位按钮无右外边距，整排左右两端与 `.mp-pad` 内边距对齐。
+
+**图标尺寸由两个变量驱动**（`--ico-size` 声明在每个 `.mp-ico--*` 上，`--ico-scale` 由容器给）：
+
+| 变量 | 含义 | 说明 |
+| --- | --- | --- |
+| `--ico-size` | 图标设计尺寸 | 每个图标一个值：play 14 / stop 13 / pause 14 / first 16 / prev 17 / fwd 17 / last 16 / eject 16 / loop 15 / vol 16 / caret 9 |
+| `--ico-scale` | 容器给的缩放系数 | 默认 1；窄视口 `.mp-tbtn` 置 0.9 |
+| `--tbtn-w` / `--tbtn-h` | 按钮外框尺寸 | 27px / 22px（窄视口 25px / 21px） |
+
+尺寸写法 `calc(var(--ico-size) * var(--ico-scale, 1))` ——
+**只改 `--ico-scale` 一个系数，11 个图标即等比缩放**，无需为任何图标单写媒体查询。
+实测：`--ico-scale:1` → play `14×14`；`--ico-scale:0.9` → play `12.594×12.594`
+（**恒为正方形**，`w == h`）。
+
+**图标设计的四条硬约束**（每条都对应一个已修的真实缺陷）：
+
+1. **所有 symbol 共用 `viewBox="0 0 24 24"`，图元画在以 `(12,12)` 为心的对称范围内**。
+   这是「严格居中」的**唯一**依据：图形几何中心 = viewBox 中心 = 容器中心。
+   旧版 `⏏` 因主元素 border box 与墨迹错位而右偏 5px，即因为缺少这个全局坐标系。
+2. **复合图标内部间隙写死在 symbol 的 `d` 里**，不再用变量拼。`#mp-i-prev`（`◀◀`）的两个
+   三角之间留有明确间隙（旧版间隙为 0，被读成一支宽箭头）。
+3. **`fill` 只写一次**：`.mp-ico { fill: currentColor }`，各 symbol 的实心图元不写 `fill`
+   即继承；只有描边类图元（喇叭的弧、循环的箭头）显式写 `fill="none" stroke="currentColor"`。
+4. **`▶` / `⏸` / 喇叭的切换只换 `<use>` 的 `href`**，符号盒尺寸由类名单独控制，
+   切换瞬间**盒子不变 → 图标不会跳大小**。旧版整体改写 `className` 会连带换掉尺寸补丁。
+
+**几个必须记住的坑**：
+
+- **SVG 元素的 `className` 是只读的**（`SVGAnimatedString`）。`el.className = 'x'` 抛
+  `TypeError: Cannot set property className of #<SVGElement> which has only a getter`，
+  且会**中断整段 `player.js` 初始化**（表现是窗口 `display:none`、`WinPlayer` undefined）。
+  一律用 `setAttribute('class', ...)`（封装为 `setSvgClass()`）。
+- **`getComputedStyle(el).getPropertyValue('--ico-size')` 返回声明值**（如 `calc(...)`），
+  `parseFloat` 会得到垃圾数字。要拿解析后的像素值，挂探针元素继承变量、读
+  `getBoundingClientRect().width`。
+- **量测前必须先 `WinPlayer.pause()` 复位**：`#mpBtnPlay` 的 `<use>` 在播放态会切到
+  `#mp-i-pause`，否则「▶ 是不是居中」会量到 ⏸ 上。
+- **`/json/new` 在部分 Edge 构建要求 `PUT` 而非 `POST`**，用 `POST` 会返回
+  `Using unsafe HTTP verb POST`。
+- **量测前必须先 `WinPlayer.open()`**：播放器窗口默认隐藏（见 §7 自动播放节），
+  窗口 `display:none` 时所有子元素 rect 退化为 0，`0-0=0` 会让「居中」断言**假通过**。
+  验证脚本必须显式断言容器 `w>0 && h>0`。
+
+
+### 8. 键盘快捷键
+
+| 键 | 行为 |
+| --- | --- |
+| `空格` | 播放 / 暂停（焦点不在按钮/链接/输入框，也不在滑杆上时才响应） |
+| `←` / `→` | 后退 / 前进 5 秒 |
+| `Home` / `End` | 回到开头 / 跳到结尾 |
+| `Esc` | 最小化窗口（焦点在滑杆上时先 `blur` 滑杆，不关窗） |
+
+### 9. 曲库与音频资源
+
+`player.js` 顶部的 `TRACKS` 数组声明曲库，当前为单曲：
+
+```js
+var TRACKS = [
+  { id: 'dreamy-noise', title: 'Dreamy Noise', artist: 'ゆうかなで',
+    file: 'assets/audio/dreamy-noise.mp3', duration: 0 },
+];
+```
+
+`duration: 0` 是占位值，真实时长在 `loadedmetadata` 事件里回填。
+数组结构与 `loadTrack(i)` / `renderList()` 已按多曲设计，
+未来追加曲目只需往 `TRACKS` 里增加条目并把音频文件放进 `assets/audio/`。
+
+音频文件 `assets/audio/dreamy-noise.mp3` 为 **12.92 MB**，
+远低于 GitHub 单文件 100 MB 硬限与 50 MB 警告阈值。
+
+> **注意（两个真实的坑）**：
+>
+> 1. **`file://` 协议**：部分浏览器会拦截本地音频加载。请改用本地 HTTP 服务。
+> 2. **`python -m http.server` 无法支持拖动跳转**：`SimpleHTTPRequestHandler`
+>    **不实现 HTTP `Range` 请求**（对 `Range: bytes=0-99` 仍返回 `200` + 完整文件，
+>    不带 `Accept-Ranges` / `Content-Range`）。此时 `<audio>.seekable` 恒为 `[0, 0]`，
+>    Chromium 会**静默拒绝**所有 `currentTime` 赋值并夹回 0——**进度条 UI 会正常移动
+>    （因为它先于赋值更新），但音频不会跳转**，这是一个极难定位的陷阱。
+>
+>    验证 seek 功能时请改用自带 Range 支持的服务器（本项目验证用的 `range_server.py`
+>    实现了 `206 Partial Content` + `Content-Range`，约 100 行）。
+>    **线上 GitHub Pages 由 CDN 承载，原生支持 Range，故线上跳转正常。**
 
 ---
 
@@ -322,12 +505,99 @@ window.WinWM = {
 | **≤ 1180px** | 隐藏桌面图标，为主窗口让出宽度 |
 | **≤ 1060px** | 记事本「并排」视图自动改为上下堆叠 |
 | **≤ 720px** | 任务栏降为 30px；窗口外边距收紧；工作区 `height:auto`；行号槽变窄；标题栏按钮加大到易点尺寸；托盘图标隐藏；任务按钮改为紧凑标签 |
-| **≤ 480px** | 播放器窗口宽度改为 `100%`，舞台高度降到 220px |
+| **≤ 480px** | 播放器窗口宽度改为 `100%`，工作区高度 226px，按钮收窄到 25px，隐藏读数区的曲目名 |
 | **≤ 420px** | 外边距进一步收紧；工具栏改为横向滚动（不换行、不溢出）；状态栏右侧信息隐藏 |
-| **横屏矮视口**（`max-height: 520px`） | 窗口高度改由视口驱动，工作区内部滚动，避免窗口被裁切；播放器舞台下限降到 130px（只需容纳 86px 的 iframe） |
+| **横屏矮视口**（`max-height: 520px`） | 窗口高度改由视口驱动，工作区内部滚动，避免窗口被裁切；播放器工作区高度降到 196px |
 
 壁纸在全部断点下均保持 `cover` 填充，不会出现拉伸变形或留白。
-播放器窗口最大化时，iframe 始终保持 330×86 不被拉伸，覆盖层与其同框居中。
+播放器窗口最大化时，工作区用 `flex: 1 1 auto; min-height: 0` 吸收剩余高度，
+刻度条与按钮排保持原尺寸不被拉伸（`min-height: 0` 是消除全屏缺口的关键）。
+
+---
+
+## 二之六、模态对话框的拖动与父窗口联动
+
+**曾经的缺陷**：「关于媒体播放机」等模态框**完全无法移动**——标题栏看着像
+Windows 对话框的标题栏（有蓝色渐变、能点），但没有任何拖动逻辑，位置被
+`left: 50%` + `margin-left: -200px` 死死钉在视口中央。
+
+### 1. 定位模型的改造（关键前置）
+
+原样式用「百分比 + 负 margin」居中：
+
+```css
+.dialog { position: fixed; left: 50%; margin-left: -200px; }
+```
+
+这套写法**与像素级拖拽天然冲突**：`left` 是百分比，拖拽要写像素；
+一旦把 `left` 改成 `400px`，`margin-left: -200px` 仍在生效，实际位置会再左偏 200px。
+
+**改造**：首次打开时把「居中结果」固化成像素 `left/top`，并加上 `.dialog--placed`
+把 `margin-left` 归零。此后 `left/top` 就是**拖拽的唯一真值来源**。
+每次打开都重做一次（先清内联样式让 CSS 居中规则重新生效，再固化），
+因此**重开时不会残留上次被拖到的位置**。
+
+```css
+.dialog--placed { margin-left: 0; }
+```
+
+### 2. 拖动实现
+
+与窗口拖拽同构（`mousedown` / `mousemove` / `mouseup` + 触屏三件套），
+但因为是 `position: fixed`，`left/top` **直接就是视口坐标**，无需像应用窗口那样
+减去 `#desktop` 的原点偏移：
+
+```js
+dlg.style.left = (p.x - dlgOffX) + 'px';
+dlg.style.top  = (p.y - dlgOffY) + 'px';
+```
+
+把手是 `.dialog__title`（`cursor: move`）；拖动中给对话框加 `.is-dragging`，
+顺带禁掉正文的文本选中（`user-select: none`），否则会拖出一片蓝色选区。
+
+### 3. 三条边界与联动规则
+
+| 场景 | 行为 |
+| --- | --- |
+| **拖出视口** | `clampDialog()` 强制保留 **24px 可见**：水平 `left ∈ [-(w-24), vw-24]`，垂直 `top ∈ [0, vh-24]`（标题栏必须留出，否则拖丢了就再也点不到） |
+| **父窗口移动** | 播放器 `dragMove()` 里调用 `WinDialog.syncOwner()`，对话框重新夹回视口 |
+| **父窗口最小化 / 关闭** | 对话框**一并收起**，不留孤儿框 |
+| **父窗口最大化 / 还原** | 重新夹回视口；最大化状态下依然可以自由拖动 |
+
+### 4. 为什么必须用 `MutationObserver`
+
+联动最初写在各个调用点（`hide()`、`toggleMax()`、`dragEnd()`）里同步检查
+「父窗口是否还有尺寸」。**但播放器的最小化在开启动画时是异步的**——
+`hide()` 里先播 240ms 缩小动画，动画结束才加 `.is-hidden`。
+于是同步检查那一刻父窗口**仍然可见**，判定为「无需收起」，
+对话框就变成了孤儿。
+
+**对策**：观察父窗口的 `class` 变化，在状态**真正落地**时再判定：
+
+```js
+dlgOwnerObserver = new MutationObserver(() => syncDialogWithOwner());
+dlgOwnerObserver.observe(ownerEl, { attributes: true, attributeFilter: ['class', 'style'] });
+```
+
+这样联动与动画时长**完全解耦**——无论谁、以何种方式把窗口隐藏，对话框都能跟上。
+`attributeFilter: ['style']` 同时覆盖了「父窗口被拖动」的情形。
+
+> **注意**：`notepad.js` 有一份**自己实现的** `infoDialog()`（不走 `showDialog`），
+> 起初因此完全没有落位与拖动能力。现改为在开框后调用 `WinDialog.place(dlg, #winNp)`
+> 复用同一套逻辑。
+
+### 5. 实测（29 + 8 断言全通过）
+
+| 用例 | 结果 |
+| --- | --- |
+| 拖动标题栏 → 位置改变，方向正确 | ✅ |
+| 向右 / 向下拖出屏幕 → 夹回，标题栏可见 | ✅ |
+| 向左上拖出屏幕 → 仍留 24px 可见 | ✅ |
+| 父窗口移动 → 对话框仍在视口内 | ✅ |
+| 父窗口最小化（含 240ms 动画）→ 对话框收起 | ✅ |
+| 最大化 / 还原 → 对话框在视口内，且仍可拖动 | ✅ |
+| 关闭 → 重开 → 回到默认居中，无位置残留 | ✅ |
+| 记事本对话框同样可拖动、最小化时收起 | ✅ |
 
 ---
 
@@ -638,7 +908,7 @@ GitHub Actions 的机房 IP 容易触发 B 站风控（返回 `-352` / `-412`）
 | `:is()` / `:where()` | Edge 88+ | 展开为逗号分隔的选择器列表 |
 | `:focus-visible` | Edge 86+ | 用 `:focus` + `outline-offset` 负值模拟 |
 | `aspect-ratio` | Edge 88+ | 固定宽高或 `padding-top` 百分比占位 |
-| `clip-path` | Edge 79+ | 播放器字形用 `border` 三角形 + `::before` 竖条拼出（见「二之三 · 按钮字形」） |
+| `clip-path` | Edge 79+ | 播放器全部 11 个图标改用内联 SVG `<symbol>` + `<use>`（见「二之三 · 第 5 节」），不依赖 `clip-path` |
 | `backdrop-filter` | Edge 79+ | 本主题为不透明实心界面，无需该特性 |
 | `::-webkit-scrollbar` 滚动条定制 | Edge 79+（Chromium 内核） | EdgeHTML 下自动回退为系统原生滚动条，属预期降级 |
 | `border-radius` | 支持但不用 | Windows Classic 是直角设计 |
@@ -700,9 +970,15 @@ GitHub Actions 的机房 IP 容易触发 B 站风控（返回 `-352` / `-412`）
 | Markdown 解析器单元测试（Node，纯函数） | 46 | 全部通过 |
 | 端到端功能验证（CDP 驱动真实浏览器，覆盖 7 图标 / 3 窗口 / 3 任务栏按钮） | 73 | 全部通过 |
 | 既有功能回归（确认未被破坏） | 38 | 全部通过 |
-| 播放器端到端（iframe 装载 / 覆盖层对齐 / 热区拦截 / 皮肤开关 / 响应式 / 任务栏） | 100 | 全部通过 |
+| 播放器端到端（音频装载 / 播放暂停 / seek / 音量 / 静音 / 循环 / 面板开关 / 刻度语义 / 键盘 / 响应式 / 任务栏 / 全屏缺口） | 90 | 全部通过 |
+| 播放器按钮排几何（图标严格居中 / 间距均匀 / 无裁切 / 无尾距 / 默认展开列表 / 自动播放 / 暂停保持 / 窄视口） | 38 | 全部通过 |
+| 播放器 SVG 图标几何（居中 / 等比 / viewBox 统一 / 引用合法 / 旋钮对齐 / 多视口不漂移） | 109 | 全部通过 |
+| 模态对话框拖动与父窗口联动（拖动 / 夹回视口 / 父窗口移动·最小化·最大化·还原 / 重开无残留） | 29 | 全部通过 |
+| 记事本对话框拖动（拖动 / 夹回 / 最小化收起） | 8 | 全部通过 |
+| 记事本 + 主窗口回归（含 XSS 安全、壁纸、打印、快速开关稳定性） | 38 | 全部通过 |
+| 桌面端到端（图标 / 窗口 / 任务栏 / 响应式 / 无 JS 错误） | 73 | 全部通过 |
 | 全屏缺口诊断（12 视口 × 2 窗口，窗口底 ↔ 任务栏顶净空） | 24 | 全部为 **0px** |
-| EdgeHTML 18 禁用语法静态扫描（`index.html` / `app.js` / `markdown.js` / `notepad.js` / `player.js`） | — | **0 违规** |
+| EdgeHTML 18 禁用语法静态扫描（`index.html` / `app.js` / `markdown.js` / `notepad.js` / `player.js` / `classic.css`） | — | **0 违规** |
 
 覆盖要点：
 
@@ -715,10 +991,10 @@ GitHub Actions 的机房 IP 容易触发 B 站风控（返回 `-352` / `-412`）
   以及图片壁纸 ↔ 纯色壁纸互切后不再残留 `wallpaper.jpg` 引用。
 - **响应式**：1440 / 1920 / 900×420 / 768 / 720 / 420 / 390 / 360 共 8 档视口下
   窗口宽度不溢出、无横向滚动、壁纸保持 `cover`、工具栏可横向滚动。
-- **播放器**：iframe 懒装载与真实 HTTP 请求、覆盖层与 iframe 同框（实测 Δx = 0 / Δy ≤ 1）、
-  三个热区中心 `elementFromPoint` 均命中热区自身（证明点击被拦截而非穿透）、
-  热区与装饰按钮几何对齐、皮肤开关切 `no-skin` 后覆盖层隐藏并回落原生控件、
-  最大化时 iframe 恒 330×86 不被拉伸、任务栏按钮三语义一致。
+- **播放器**：`<audio>` 真实装载与 `loadedmetadata` 回填时长、`play()` / `pause()` 改变
+  `paused` 与派生字形、拖动刻度条写入 `currentTime` 且与 `timeupdate` 不互踩、
+  音量滑杆写入 `volume`、静音切换 `muted` 并同步菜单勾选态、循环切换 `loop`、
+  音量/列表面板开合与工具栏按钮 `aria-pressed` 一致、任务栏按钮三语义一致。
 - **全屏缺口**：`.window.is-maxed > .workspace` 弹性填充后，窗口底边在 12 档视口下
   均与任务栏上沿重合（净空 0px），工作区高度随视口实时变化而非固定魔法常量。
 - **既有功能回归**：桌面 7 个图标、6 + 4 个菜单、三条记事本入口、主窗口工具栏与托盘时钟、

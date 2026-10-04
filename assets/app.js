@@ -493,20 +493,33 @@
       case 'mp-close':
         if (window.WinPlayer) window.WinPlayer.close();
         break;
-      case 'mp-skin':
-        if (window.WinPlayerMenu) window.WinPlayerMenu.setSkin(true);
-        break;
-      case 'mp-native':
-        if (window.WinPlayerMenu) window.WinPlayerMenu.setSkin(false);
-        break;
       case 'mp-reset':
         if (window.WinPlayerMenu) window.WinPlayerMenu.reset();
         break;
       case 'mp-reload':
-        reloadPlayerFrame();
+        if (window.WinPlayerMenu) window.WinPlayerMenu.reset();
         break;
       case 'mp-open-native':
-        window.open('https://music.163.com/#/song?id=22636810', '_blank');
+        if (window.WinPlayerMenu) window.WinPlayerMenu.setVolPanel(true);
+        toast('设备', '已展开音量面板，可调节输出音量或静音。');
+        break;
+      case 'mp-open-file':
+        if (window.WinPlayerMenu) window.WinPlayerMenu.togglePlay();
+        break;
+      case 'mp-copy-title':
+        copyText(playerNowTitle(), '当前曲目');
+        break;
+      case 'mp-device-speaker':
+        if (window.WinPlayerMenu) window.WinPlayerMenu.setMuted(!window.WinPlayerMenu.isMuted());
+        break;
+      case 'mp-volume':
+        if (window.WinPlayerMenu) window.WinPlayerMenu.toggleVolPanel();
+        break;
+      case 'mp-scale-time':
+        if (window.WinPlayerMenu) window.WinPlayerMenu.setScaleMode('time');
+        break;
+      case 'mp-scale-track':
+        if (window.WinPlayerMenu) window.WinPlayerMenu.setScaleMode('track');
         break;
       case 'mp-help': dialogPlayerHelp(); break;
       case 'copy-link':    copyText(location.href, '本页链接'); break;
@@ -695,6 +708,157 @@
     '<path d="M11 11l10 10M21 11L11 21" stroke="#ffffff" stroke-width="3.2"/></svg>';
 
   let dlgOnOk = null;
+  /* 对话框拖动状态（页面级共享：所有 showDialog 调用者共用同一个对话框元素） */
+  let dlgOwner = null;      // 触发对话框的「父窗口」元素（可空）
+  let dlgDragging = false;
+  let dlgOffX = 0, dlgOffY = 0;
+  let dlgBaseX = 0, dlgBaseY = 0;
+  let dlgPlaced = false;    // 是否已把默认居中固化为像素坐标
+
+  /* 把对话框从「left:50% + margin-left:-W/2」的居中态，
+     固化为明确的像素 left/top。每次打开都重做：
+     先清掉上一次的像素 left/top 与 dialog--placed，让 CSS 的居中规则重新生效，
+     再把居中结果固化。否则重开时会把「上次被拖到的位置」当成居中基准。 */
+  function placeDialogOnce() {
+    const dlg = $('dialog');
+    if (!dlg) return;
+    /* 先复位到 CSS 居中态（清内联 left/top + 去掉 placed 类） */
+    dlg.classList.remove('dialog--placed');
+    dlg.style.left = '';
+    dlg.style.top = '';
+
+    /* 测量前先显示，否则 rect 全为 0 */
+    const wasOpen = dlg.classList.contains('is-open');
+    if (!wasOpen) {
+      dlg.style.visibility = 'hidden';
+      dlg.classList.add('is-open');
+    }
+    const r = dlg.getBoundingClientRect();
+    dlg.style.left = r.left + 'px';
+    dlg.style.top = r.top + 'px';
+    dlg.classList.add('dialog--placed');
+    if (!wasOpen) {
+      dlg.classList.remove('is-open');
+      dlg.style.visibility = '';
+    }
+    dlgPlaced = true;
+  }
+
+  /* 把对话框位置夹在视口内，保证标题栏（拖拽把手）始终可及。
+     这是「拖出屏幕找不回」的唯一防线，拖动中与父窗口变化时都要调用。 */
+  function clampDialog() {
+    const dlg = $('dialog');
+    if (!dlg || !dlg.classList.contains('is-open')) return;
+    const r = dlg.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const MARGIN = 24;          // 至少露出这么多像素
+    let left = parseFloat(dlg.style.left);
+    let top = parseFloat(dlg.style.top);
+    if (!isFinite(left)) left = r.left;
+    if (!isFinite(top)) top = r.top;
+
+    /* 水平：完全飞出左/右就拉回；垂直：标题栏至少要留 MARGIN 可见 */
+    const minLeft = -(r.width - MARGIN);
+    const maxLeft = vw - MARGIN;
+    const minTop = 0;
+    const maxTop = vh - MARGIN;
+    left = Math.min(Math.max(left, minLeft), maxLeft);
+    top = Math.min(Math.max(top, minTop), maxTop);
+
+    dlg.style.left = left + 'px';
+    dlg.style.top = top + 'px';
+  }
+
+  /* 父窗口的最小化 / 最大化 / 移动都会走这里。
+     语义：对话框始终「跟随父窗口」——
+       · 父窗口不可见（最小化 / 关闭）→ 对话框也隐藏（连带关闭，不留孤儿）
+       · 父窗口可见 → 重新夹回视口，保证不会被父窗口变化挤出屏幕 */
+  function syncDialogWithOwner() {
+    const dlg = $('dialog');
+    if (!dlg || !dlg.classList.contains('is-open')) return;
+    if (!dlgOwner) return;
+
+    /* 父窗口不可见 → 连同对话框一起收起 */
+    const visible =
+      dlgOwner.offsetWidth > 0 &&
+      dlgOwner.offsetHeight > 0 &&
+      !dlgOwner.classList.contains('is-hidden');
+    if (!visible) { hideDialog(); return; }
+    clampDialog();
+  }
+
+  /* 观察父窗口的 class 变化（is-hidden / is-maxed / is-inactive）。
+     必要性：播放器的「最小化」在开启动画时延后约 240ms 才加上 is-hidden，
+     仅靠调用点同步检查会误判为「仍可见」，从而留下孤儿对话框。
+     MutationObserver 能在状态真正落地的那一刻捕获，与动画时长解耦。 */
+  let dlgOwnerObserver = null;
+  function watchDialogOwner(ownerEl) {
+    if (dlgOwnerObserver) { dlgOwnerObserver.disconnect(); dlgOwnerObserver = null; }
+    if (!ownerEl || !window.MutationObserver) return;
+    dlgOwnerObserver = new MutationObserver(() => { syncDialogWithOwner(); });
+    dlgOwnerObserver.observe(ownerEl, { attributes: true, attributeFilter: ['class', 'style'] });
+  }
+
+  const dlgGetPoint = (e) => {
+    if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.changedTouches && e.changedTouches.length) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  };
+
+  const dlgDragMove = (e) => {
+    if (!dlgDragging) return;
+    const dlg = $('dialog');
+    const p = dlgGetPoint(e);
+    /* 固定定位：left/top 直接就是视口坐标，无需减去任何容器原点 */
+    dlg.style.left = (p.x - dlgOffX - dlgBaseX) + 'px';
+    dlg.style.top  = (p.y - dlgOffY - dlgBaseY) + 'px';
+    clampDialog();
+    if (e.cancelable) e.preventDefault();
+  };
+
+  const dlgDragEnd = () => {
+    if (!dlgDragging) return;
+    dlgDragging = false;
+    $('dialog').classList.remove('is-dragging');
+    document.removeEventListener('mousemove', dlgDragMove);
+    document.removeEventListener('mouseup', dlgDragEnd);
+    document.removeEventListener('touchmove', dlgDragMove);
+    document.removeEventListener('touchend', dlgDragEnd);
+  };
+
+  const dlgDragStart = (e) => {
+    const dlg = $('dialog');
+    if (!dlg.classList.contains('is-open')) return;
+    /* 标题栏是唯一把手；点在标题栏按钮上不触发拖动 */
+    if (e.target.closest('button')) return;
+
+    placeDialogOnce();
+    const p = dlgGetPoint(e);
+    const r = dlg.getBoundingClientRect();
+    dlgBaseX = 0;
+    dlgBaseY = 0;
+    dlgOffX  = p.x - r.left;
+    dlgOffY  = p.y - r.top;
+    dlgDragging = true;
+    dlg.classList.add('is-dragging');
+    document.addEventListener('mousemove', dlgDragMove);
+    document.addEventListener('mouseup', dlgDragEnd);
+    document.addEventListener('touchmove', dlgDragMove, { passive: false });
+    document.addEventListener('touchend', dlgDragEnd);
+    if (e.cancelable) e.preventDefault();
+  };
+
+  /* 把标题栏绑定成拖拽把手（绑定一次即可，元素是复用的） */
+  (function bindDialogDrag() {
+    const dlg = $('dialog');
+    const bar = dlg && dlg.querySelector('.dialog__title');
+    if (!bar) return;
+    bar.addEventListener('mousedown', dlgDragStart);
+    bar.addEventListener('touchstart', dlgDragStart, { passive: false });
+    /* 父窗口尺寸/位置/显隐变化时同步（捕获阶段，能收到任意来源的变化） */
+    window.addEventListener('resize', () => { if (dlgOwner) syncDialogWithOwner(); });
+  })();
 
   function showDialog(opts) {
     const o = opts || {};
@@ -705,17 +869,48 @@
     $('dlgCancel').style.display = o.cancelText ? '' : 'none';
     if (o.cancelText) $('dlgCancel').textContent = o.cancelText;
     dlgOnOk = o.onOk || null;
+    /* 记录父窗口：用于最小化/最大化/移动时的联动 */
+    dlgOwner = o.owner || null;
+    dlgPlaced = false;                 // 每次打开都重新落位
 
     $('modalMask').classList.add('is-open');
     $('dialog').classList.add('is-open');
+    placeDialogOnce();
+    clampDialog();
+    watchDialogOwner(dlgOwner);
     $('dlgOk').focus();
   }
 
   function hideDialog() {
     $('modalMask').classList.remove('is-open');
     $('dialog').classList.remove('is-open');
+    /* 立刻结束可能进行中的拖动，避免隐藏后仍残留全局监听 */
+    dlgDragEnd();
+    watchDialogOwner(null);
     dlgOnOk = null;
+    dlgOwner = null;
+    dlgPlaced = false;
   }
+
+  window.WinDialog = window.WinDialog || {
+    /* 供其他模块（notepad.js 等自带开框逻辑者）复用的落位入口：
+       固化居中为像素坐标 + 记录父窗口 + 夹回视口。 */
+    place: (dlgEl, ownerEl) => {
+      dlgOwner = ownerEl || null;
+      dlgPlaced = false;
+      placeDialogOnce();
+      clampDialog();
+      watchDialogOwner(dlgOwner);
+    },
+    syncOwner: syncDialogWithOwner,
+    isOpen: () => $('dialog').classList.contains('is-open'),
+    getRect: () => {
+      const d = $('dialog');
+      const r = d.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    },
+    getOwner: () => dlgOwner,
+  };
 
   on('dlgOk', 'click', () => {
     const fn = dlgOnOk;
@@ -788,35 +983,44 @@
     });
   }
 
-  /* ---------- 播放器：重载 iframe（仅重建 src，不动窗口状态） ---------- */
-  function reloadPlayerFrame() {
-    const fr = $('mpFrame');
-    if (!fr) {
-      toast('播放器不可用', 'assets/player.js 未加载，无法操作播放器窗口。');
-      return;
-    }
-    /* 用带时间戳的新 src 强制重新请求，等价于「刷新播放器」 */
-    const base = '//music.163.com/outchain/player?type=2&id=22636810&auto=1&height=66';
-    fr.setAttribute('src', base + '&_=' + Date.now());
-    toast('播放器已重载', '已重新向 music.163.com 请求播放器文档。');
+  /* ---------- 播放器：当前曲目标题（供「复制曲目」使用） ---------- */
+  function playerNowTitle() {
+    const el = $('mpCoverTitle');
+    if (el && el.textContent) return el.textContent;
+    const st = $('mpStatusTrack');
+    if (st && st.textContent) return st.textContent;
+    return '媒体播放机';
   }
 
-  /* ---------- 播放器：跨域与覆盖层说明 ---------- */
+  /* ---------- 播放器：关于本站媒体播放机 ---------- */
   function dialogPlayerHelp() {
     showDialog({
-      title: '关于覆盖层与跨域',
+      title: '关于媒体播放机',
+      icon: ICON_INFO,
+      okText: '知道了',
+      /* 父窗口：播放器窗口。用于最小化/最大化/移动时的联动（见 syncDialogWithOwner） */
+      owner: document.getElementById('winMp'),
       html:
-        '<p><b>为什么不能让原生按钮「真的」变成经典样式？</b></p>' +
-        '<p style="margin-top:6px;">网易云外链播放器位于 <code>music.163.com</code>，' +
-        '与本站不同源。同源策略下，父页面<b>无法读取或修改</b> iframe 内部的 DOM，' +
-        '因此不存在「替换其按钮样式」的纯前端做法。</p>' +
-        '<p style="margin-top:8px;"><b>本站采用的可行方案：</b></p>' +
+        '<p><b>这是一个完全自包含的经典风格播放器。</b></p>' +
+        '<p style="margin-top:6px;">音频来自本仓库自带的 <code>assets/audio/dreamy-noise.mp3</code>，' +
+        '与页面同源，因此<b>不存在跨域限制</b>，所有控件都作用于真实播放状态。</p>' +
+        '<p style="margin-top:8px;"><b>真实（非模拟）的部分：</b></p>' +
         '<ul style="margin:6px 0 0 0;">' +
-        '<li><b>视觉覆盖</b>：在 iframe 之上铺一层同尺寸经典控件条，像素级盖住原生控件区。</li>' +
-        '<li><b>点击拦截</b>：覆盖层是真实 DOM，落在其上的点击<b>不会</b>穿透到 iframe。</li>' +
-        '<li><b>功能回落</b>：点工具栏「皮肤」可隐藏覆盖层，直接用原生控件精确操作。</li>' +
-        '<li><b>进度说明</b>：无法读取真实播放位置，进度条为本地模拟的视觉意象。</li>' +
-        '</ul>',
+        '<li><b>进度刻度</b>：直接映射 <code>&lt;audio&gt;</code> 的 <code>currentTime / duration</code>，可拖动跳转。</li>' +
+        '<li><b>时间读数</b>：播放中每秒刷新，格式 <code>mm:ss</code>。</li>' +
+        '<li><b>音量</b>：「设备 → 音量」面板内的滑杆，实时写入 <code>volume</code>；静音按钮切换 <code>muted</code>。</li>' +
+        '<li><b>循环</b>：传输按钮排最右侧，切换 <code>loop</code>，单曲可无缝重复。</li>' +
+        '</ul>' +
+        '<p style="margin-top:8px;"><b>键盘快捷键：</b></p>' +
+        '<ul style="margin:6px 0 0 0;">' +
+        '<li><code>空格</code> — 播放 / 暂停</li>' +
+        '<li><code>←</code> / <code>→</code> — 后退 / 前进 5 秒</li>' +
+        '<li><code>Home</code> / <code>End</code> — 回到开头 / 跳到结尾</li>' +
+        '<li><code>Esc</code> — 最小化窗口</li>' +
+        '</ul>' +
+        '<p style="margin-top:8px; color:#404040;">' +
+        '提示：若以 <code>file://</code> 方式直接打开页面，部分浏览器会拦截本地音频加载，' +
+        '请改用本地 HTTP 服务（例如 <code>python -m http.server 8000</code>）。</p>',
     });
   }
 

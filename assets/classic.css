@@ -1153,6 +1153,22 @@ code, pre, .mono { font-family: var(--mono); }
 }
 .statusbar__pane--grow { flex: 1 1 auto; min-width: 0; }
 .statusbar__pane--right { width: 62px; text-align: center; }
+/* 播放器状态栏：时间格需完整容纳「01:58 / 05:37」（13 字符），
+   默认 62px 会截断成「01:58 /…」。这里放宽到 100px 并用等宽小字号，
+   同时让曲名格 min-width:0 以便在窄屏时优先压缩曲名而非截断时间。 */
+.window--mp .statusbar__pane--right {
+  flex: none;
+  width: 100px;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 0 4px;
+}
+.window--mp .statusbar__pane--grow {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ==========================================================================
    12. 任务栏
@@ -1367,6 +1383,11 @@ code, pre, .mono { font-family: var(--mono); }
 }
 .modal-mask.is-open { display: block; }
 
+/* 模态对话框。
+   默认居中：left:50% + margin-left:-W/2（W=400px 的一半）。
+   首次打开时由 JS 把「居中结果」固化成像素 left/top，并清掉 margin-left，
+   此后 left/top 即为拖拽的唯一真值来源（避免百分比定位与像素拖拽互相打架）。
+   固化后 .dialog--placed 生效，margin-left 归零。 */
 .dialog {
   position: fixed;
   left: 50%;
@@ -1385,7 +1406,11 @@ code, pre, .mono { font-family: var(--mono); }
     inset -1px -1px 0 var(--shadow),
     3px 3px 0 rgba(0, 0, 0, .4);
 }
+.dialog--placed { margin-left: 0; }
 .dialog.is-open { display: block; }
+.dialog.is-dragging { cursor: move; }
+/* 拖动中禁止选中正文（否则会拖出文本选区，观感像故障） */
+.dialog.is-dragging .dialog__text { user-select: none; }
 .dialog__title {
   height: 20px;
   padding: 0 3px;
@@ -1394,6 +1419,12 @@ code, pre, .mono { font-family: var(--mono); }
   font-size: 12px;
   font-weight: bold;
   line-height: 20px;
+  /* 标题栏即拖拽把手 */
+  cursor: move;
+  user-select: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .dialog__body {
   display: grid;
@@ -1789,285 +1820,457 @@ code, pre, .mono { font-family: var(--mono); }
 .md tbody tr:nth-child(even) { background: #f7f7f7; }
 
 /* ==========================================================================
-   15c. 媒体播放器窗口（iframe + Windows 3.1 视觉覆盖层）
+   15c. 媒体播放机窗口（原生音频播放 + Windows 3.1 视觉）
    --------------------------------------------------------------------------
-   设计要点：
-     · iframe 跨域 → 无法改动其内部 DOM，只能「盖」不能「改」；
-     · 覆盖层 .mp-cover 与 iframe 同尺寸、同位置，像素级覆盖原生控件区；
-     · 装饰件一律 pointer-events:none（纯视觉，不吃事件）；
-     · 热区 .mp-hot 用 pointer-events:auto 吃掉点击，阻止穿透；
-     · 舞台 .mp-stage 居中摆放固定尺寸的 iframe，两侧留经典灰底，
-       避免把 330×86 的 iframe 拉伸变形。
+   与旧版（iframe 跨域 + 覆盖层）相比的根本变化：
+     · 音源改为本站自有的 assets/audio/dreamy-noise.mp3，用 <audio> 播放；
+     · 因此进度、时长、音量、播放状态全部是**真实值**，不再是「视觉意象」；
+     · 不再需要跨域规避、同框对齐、点击穿透拦截等一整套 hack。
+
+   视觉蓝本：原生「媒体播放机」（非 WMP9+），自上而下三行：
+     ① 单行菜单栏          文件(F) 编辑(E) 设备(D) 刻度(S) 帮助(H)
+     ② 主刻度条            细长进度轨道 + 两端三角微调 + 时间读数
+     ③ 底部传输按钮排      ▶ ■ ⏸ | ⏮ ⏪ ▶▶ ⏩ | ⏏ ⏭
+
+   字形一律用 border 三角形拼（禁用 clip-path —— Edge 79+ 才支持，
+   在 EdgeHTML 18 会退化成实心方块）。
    ========================================================================== */
 .window--mp {
-  --window-w: 430px;
+  --window-w: 460px;
   margin: 78px auto 26px;
 }
 /* 注：播放器最大化时的尺寸由上方「最大化：用弹性填充替代魔法常量」统一处理 */
 
-/* ---------- 舞台：承载 iframe 与覆盖层 ---------- */
+/* ---------- 舞台 ---------- */
 .mp-workspace {
   background: var(--face);
-  /* 正常态：给舞台一个够用的固定高度（iframe 86px + 上下留白 + 面板） */
-  height: 236px;
+  /* 正常态：容纳刻度条 + 读数 + 按钮排 + 可选面板 */
+  height: 208px;
   max-height: calc(100vh - 190px);
+  overflow: auto;
 }
 .mp-stage {
   position: relative;
   width: 100%;
-  height: 100%;
-  min-height: 0;
+  min-height: 100%;
+  padding: 8px 10px 10px;
   background: var(--face);
-  overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* ---------- 真实 iframe：固定 330×86，绝对定位以精确对齐覆盖层 ---------- */
-.mp-frame {
-  position: absolute;
-  /* left/top 由 JS updateStageMetrics() 居中计算后写入 */
-  left: 0;
-  top: 0;
-  width: 330px;
-  height: 86px;
-  border: 0;
-  background: #fff;
-  z-index: 1;
-}
-
-/* ---------- 覆盖层：与 iframe 完全同框 ---------- */
-.mp-cover {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 330px;
-  height: 86px;
-  z-index: 2;
-  /* 默认整层不吃事件，保证装饰件不拦截；只有 .mp-hot 例外 */
-  pointer-events: none;
-  background: linear-gradient(180deg, #dfdfdf 0%, #c0c0c0 100%);
-  border: 1px solid;
-  border-color: var(--light) var(--dark) var(--dark) var(--light);
-  box-shadow: inset 1px 1px 0 var(--hilight), inset -1px -1px 0 var(--shadow);
-  overflow: hidden;
-}
-/* 关闭皮肤：整层隐藏，回落到网易云原生控件 */
-.window--mp.no-skin .mp-cover { display: none; }
-
-/* ---------- 覆盖层内部：第一行（标题 / 状态灯） ---------- */
-.mp-cover__top {
+/* ==========================================================================
+   ① 主刻度条
+   --------------------------------------------------------------------------
+   轨道为「凹槽」外观（暗色 3D 边框 + 内阴影），条身是经典蓝渐变，
+   右下角有可拖拽的旋钮（.mp-scale__knob）。
+   ========================================================================== */
+.mp-scalerow {
   display: flex;
   align-items: center;
-  height: 22px;
-  padding: 0 4px;
-  background: rgba(255, 255, 255, .38);
-  border-bottom: 1px solid var(--shadow);
 }
-.mp-cover__icon {
-  flex: none;
-  display: block;
-  width: 14px;
-  height: 14px;
-  margin-right: 4px;
-}
-.mp-cover__title {
+.mp-scale {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
-  font: bold 11px/1 var(--font);
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.mp-cover__led {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  margin-left: 4px;
-  background: #404040;
-  border: 1px solid;
-  border-color: var(--dark) var(--light) var(--light) var(--dark);
-}
-.window--mp.is-playing .mp-cover__led { background: #00a000; }
-
-/* ---------- 覆盖层内部：进度条 ---------- */
-.mp-cover__track {
-  position: relative;
-  height: 16px;
-  margin: 5px 6px 0;
+  height: 22px;
+  margin: 0 4px;
   background: #ffffff;
   border: 1px solid;
   border-color: var(--dark) var(--light) var(--light) var(--dark);
   box-shadow: inset 1px 1px 0 var(--shadow);
   cursor: pointer;
-  /* 进度槽是「可交互」的（仅移动视觉进度），单独开事件 */
-  pointer-events: auto;
+  overflow: hidden;
 }
-.mp-cover__bar {
+/* 刻度纹理：每 8px 一根细竖线，靠 repeating-linear-gradient 生成（Edge 12+ 支持） */
+.mp-scale__ticks {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 5px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #808080 0, #808080 1px,
+    transparent 1px, transparent 8px
+  );
+  pointer-events: none;
+}
+.mp-scale__bar {
   position: absolute;
   left: 1px;
   top: 1px;
   bottom: 1px;
   width: 0;
   background: linear-gradient(180deg, #000080 0%, #1084d0 55%, #000080 100%);
-}
-.mp-cover__time {
-  margin: 3px 6px 0;
-  font: 10px/1 var(--mono);
-  color: var(--text-dim);
-  text-align: right;
-  white-space: nowrap;
-}
-.window--mp.no-skin .mp-cover__time { visibility: hidden; }
-
-/* ---------- 覆盖层内部：传输按钮组（视觉装饰，不吃事件） ---------- */
-.mp-cover__pad {
-  display: flex;
-  align-items: center;
-  margin: 4px 6px 0;
   pointer-events: none;
 }
-.mp-cbtn {
+/* 旋钮：SVG 矢量握柄。
+   定位策略 = 「left 按百分比驱动 + translateX(-50%) 自居中」：
+     · left 由 JS 写成百分比（0–100%），随轨道长度线性伸缩；
+     · translateX(-50%) 让旋钮**自身**在锚点处水平居中，与旋钮宽度无关
+       —— 旧版用固定 -3px 的负 margin，旋钮宽度一变（或缩放）就会偏。
+     · top/bottom 撑满轨道内容区，保证垂直方向始终与轨道对齐。
+   注意：这里不能用 margin:auto 居中，因为 left 是百分比锚点，
+   水平方向要的是「锚点居中」而非「容器居中」。
+
+   垂直方向同理：不能让 top/bottom 同时拉伸（盒子高度由内容驱动时
+   会过约束，导致元素贴顶、中心上移约 2.6px）。改为 top:50% +
+   translateY(-50%)，由 transform 自身居中，**与轨道高度完全无关**。 */
+.mp-scale__knob,
+.mp-vol__knob {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  /* 7px 宽 × 12:22 设计比 = 12.83px 高；显式写出，避免 height:auto 塌缩 */
+  height: 12.83px;
+  left: 1px;
+  transform: translate(-50%, -50%);
+  fill: currentColor;
+  color: var(--face);
+  pointer-events: none;
+}
+.mp-scale:focus {
+  outline: 1px dotted #000000;
+  outline-offset: -3px;
+}
+
+/* 两端三角微调按钮 */
+.mp-spin {
   flex: none;
-  width: 26px;
+  width: 17px;
   height: 17px;
-  margin-right: 3px;
+  padding: 0;
   background: var(--face);
   border: 1px solid;
   border-color: var(--light) var(--dark) var(--dark) var(--light);
   box-shadow: inset 1px 1px 0 var(--hilight), inset -1px -1px 0 var(--shadow);
-  /* 装饰按钮不吃事件，真正的可点击热区浮在其上 */
-  pointer-events: none;
   position: relative;
+  cursor: default;
 }
-.mp-cbtn.is-pressed {
+.mp-spin:active,
+.mp-spin.is-pressed {
   border-color: var(--dark) var(--light) var(--light) var(--dark);
   box-shadow: inset 1px 1px 0 var(--shadow);
-  padding-top: 1px;
-  padding-left: 1px;
+}
+/* 刻度条两端的微调箭头：同为 SVG，尺寸小于主按钮排，
+   同样靠「绝对定位 + 四边归零 + margin:auto」居中。 */
+.mp-spin > .mp-ico { --ico-size: 9px; }
+
+/* ---------- 刻度读数 ---------- */
+.mp-readout {
+  display: flex;
+  align-items: center;
+  margin: 5px 2px 0;
+  font: 10px/1.2 var(--mono);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.mp-readout__elapsed { color: var(--text); font-weight: bold; }
+.mp-readout__sep { margin: 0 3px; }
+.mp-readout__spacer { flex: 1 1 auto; min-width: 8px; }
+.mp-readout__track {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font);
 }
 
-/* 按钮字形：用 border 三角形拼，避免引入图标字体。
-   注意：这里刻意不用 clip-path —— 它是 Edge 79+ 才支持的属性，
-   在目标基线 EdgeHTML 18 上会完全失效（三角形退化成实心方块）。
-   border 三角形自 CSS1 起就可用，是唯一能覆盖到 Edge 18 的画法。
+/* ==========================================================================
+   ② 底部传输按钮排
+   ========================================================================== */
+.mp-pad {
+  display: flex;
+  align-items: center;
+  margin: 9px 2px 0;
+}
+/* 按钮间距：用相邻兄弟选择器加左侧外边距，而不是容器 gap
+   —— flex 容器的 gap 需要 Edge 84+，本项目基线是 EdgeHTML 18。
+   规则拆成三条，各自只负责一件事：
+   1. 按钮紧跟按钮      → 左外边距 3px（常规按钮间距）
+   2. 按钮紧跟分隔符    → 左外边距 0  （分隔符自带左右 margin，不再叠加）
+   3. 分隔符紧跟按钮    → 不动分隔符的 margin，保留它自己的左右 5px
+   注意第 2、3 条必须分开写：`.mp-tbtn + .mp-pad__sep` 匹配的是分隔符本身，
+   若把它与第 2 条并列写成同一个块，会把分隔符的 margin-left 也清零，
+   导致「按钮—分隔符」之间塌成 0px（实测就是这个症状）。 */
+.mp-tbtn + .mp-tbtn {
+  margin-left: 3px;
+}
+.mp-pad__sep + .mp-tbtn {
+  margin-left: 0;
+}
+/* ----------------------------------------------------------------------
+   传输按钮：尺寸与图标缩放都由变量驱动
+   ----------------------------------------------------------------------
+   --tbtn-w / --tbtn-h   按钮外框尺寸
+   --ico-scale           图标缩放系数（1 = 设计尺寸）
 
-   居中策略：.mp-glyph 是一个 0×0 的定位点，靠 transform 的
-   translate(-50%,-50%) 把「本身」居中；但 prev/next 还多带一根竖条，
-   整体宽度大于三角本身，所以用 translate 的 x 分量做视觉补偿，
-   而不是用 margin（margin 会同时移动绝对定位的参照原点，
-   使 ::before 的偏移量跟着漂移，难以推算）。 */
-.mp-glyph {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  display: block;
-  width: 0;
-  height: 0;
-  /* 垂直居中：字形可视高度恒为 10px（上下各 5px），上移 5px 即为居中 */
-  margin-top: -5px;
-}
-/* 播放：右向三角，水平居中后再右移 1px 视觉平衡 */
-.mp-glyph--play {
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 8px solid #000000;
-  margin-left: -3px;
-}
-/* 暂停：双竖线，宽 8px 高 10px，水平居中 */
-.mp-glyph--pause {
-  width: 8px;
-  height: 10px;
-  border-left: 3px solid #000000;
-  border-right: 3px solid #000000;
-  margin-left: -4px;
-}
-/* 上一首 "|◀"。
-   设按钮宽 26px，left:50% 使 0×0 原点落在按钮中心（距左 13px）。
-   字形可视宽 12px（竖条 2 + 间隙 2 + 三角 8），要居中则从距左 7px 起：
-       竖条  距左 7..9
-       三角  距左 11..19
-   三角由 border-right:8px 构成，其 border box 左边缘即「三角视觉左边缘」，
-   因此三角 border box 需落在距左 11px → 相对原点偏移 = 11 - 13 = -2px。
-   竖条的 left 相对「padding box 左边缘」（= border box 左边缘，因 padding:0），
-   故竖条 left = 7 - 11 = -4px。 */
-.mp-glyph--prev {
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-right: 8px solid #000000;
-  margin-left: -2px;
-}
-.mp-glyph--prev::before {
-  content: "";
-  position: absolute;
-  left: -4px;
-  top: -5px;
-  width: 2px;
-  height: 10px;
-  background: #000000;
-}
-/* 下一首 "▶|"，镜像：
-       三角  距左 7..15   （border-left:8px，border box 左边缘 = 视觉左边缘）
-       竖条  距左 17..19
-   三角相对原点偏移 = 7 - 13 = -6px；
-   竖条相对三角 border box 左边缘 = 17 - 7 = 10px。 */
-.mp-glyph--next {
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 8px solid #000000;
-  margin-left: -6px;
-}
-.mp-glyph--next::before {
-  content: "";
-  position: absolute;
-  left: 10px;
-  top: -5px;
-  width: 2px;
-  height: 10px;
-  background: #000000;
-}
+   图标本身是 SVG（见 index.html 顶部的 <defs> 精灵表），尺寸由
+   `.mp-ico--xxx` 上的 --ico-size 固定声明；这里再用 --ico-scale 统一
+   乘一个系数，好处是：
 
-/* ---------- 热区：浮在装饰按钮之上，吃掉点击 ---------- */
-.mp-hot {
-  position: absolute;
-  z-index: 3;
-  pointer-events: auto;
-  background: transparent;
-  border: 0;
-  padding: 0;
+     1. 九个图标天然共享同一套缩放口径 → 视觉重量一致；
+     2. 窄视口只改 --ico-scale 一个数字，所有图标**等比**缩放，
+        不必为每个图标单独写媒体查询；
+     3. 缩放不改变 viewBox 比例，也不改变居中方式 —— 图标永远在
+        容器中心，只变大小。
+
+   尺寸推导（27×22 的按钮，content 区 25×20）：
+     最大图标 17px（双三角），上下各留 2.5px、左右各留 4px
+     单三角 14px，明显小于双三角，主次分明
+   ---------------------------------------------------------------------- */
+.mp-tbtn {
+  --tbtn-w: 27px;
+  --tbtn-h: 22px;
+  --ico-scale: 1;
+  flex: none;
+  width: var(--tbtn-w);
+  height: var(--tbtn-h);
   margin: 0;
+  padding: 0;
+  background: var(--face);
+  border: 1px solid;
+  border-color: var(--light) var(--dark) var(--dark) var(--light);
+  box-shadow: inset 1px 1px 0 var(--hilight), inset -1px -1px 0 var(--shadow);
+  position: relative;
   cursor: default;
-  outline: none;
-  /* 键盘可达的可见焦点 */
 }
-.mp-hot:focus { box-shadow: 0 0 0 1px #000080 inset; }
-.mp-hot.is-pressed {
-  background: rgba(0, 0, 128, .10);
+.mp-tbtn:active,
+.mp-tbtn.is-pressed {
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+}
+.mp-tbtn:focus {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+}
+/* 激活态（循环 / 静音）：按钮保持「按下」外观 */
+.mp-tbtn.is-on {
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+  background: #d4d0c8;
+}
+.mp-pad__sep {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  /* 左右对称：分隔符与两侧按钮各留 5px，视觉上比按钮间距(3px)略宽，成组感更清晰 */
+  margin: 0 5px;
+  background: var(--shadow);
+  box-shadow: 1px 0 0 var(--hilight);
 }
 
-/* 热区的几何：与 .mp-cover__pad 中三个按钮的位置一一对应。
-   pad 起点 margin-left:6px；每个按钮宽 26px + 间距 3px。
-     prev : x = 6                    , w = 26
-     play : x = 6 + 26 + 3 = 35      , w = 26
-     next : x = 6 + (26+3)*2 = 64    , w = 26
-   y 由 cover__pad 的 margin-top(4px) + 上方各行高度决定，
-   这里用一个稳妥的常量：top 61px、高 17px（覆盖层总高 86px）。 */
-.mp-hot--prev { left: 6px;  top: 61px; width: 26px; height: 17px; }
-.mp-hot--play { left: 35px; top: 61px; width: 26px; height: 17px; }
-.mp-hot--next { left: 64px; top: 61px; width: 26px; height: 17px; }
+/* ---------- 图标（SVG 矢量） ----------
 
-/* ---------- 播放器工具栏的「皮肤」按钮 ---------- */
+   为什么用 SVG 而不是 border 三角形：
+     border 三角形是「拿边框伪装成图形」的 hack —— 元素 border box 与可见墨迹
+     不重合，多部件字形必须手推 --gx / --gw 才能居中，且 sub-pixel 取整会随
+     容器尺寸漂移（旧版 ⏭ 因此被按钮右缘裁切、⏏ 整体右偏 5px）。
+     SVG 有确定的 viewBox，`preserveAspectRatio` 默认为等比缩放，容器宽高
+     怎么变都严格居中、比例恒定。图标定义集中在 index.html 顶部
+     `<svg class="mp-sprite">` 的 <defs> 里，此处只负责「落位与缩放」。
+
+   ── 居中原理 ──────────────────────────────────────────────────────────
+   居中**不靠 CSS 偏移**，而是由图形自身的坐标系保证：
+     · 所有图标共用 viewBox="0 0 24 24"，几何中心落在 (12,12)；
+     · 每个 symbol 的图元画在以 (12,12) 为心的对称范围内；
+     · 容器用「绝对定位 + 四边归零 + margin:auto」把 SVG 盒子居中。
+   于是无论容器宽高如何变化，图形中心恒与容器中心重合，不存在需要手工
+   补偿的偏移量 —— 从根上消掉了「偏移」这一整类缺陷。
+
+   ── 缩放原理 ──────────────────────────────────────────────────────────
+   图标尺寸由 --ico-size 驱动（默认 16px）。SVG 同时给 width/height 与
+   viewBox，浏览器按 viewBox 等比映射，因此：
+     · 改 --ico-size 只改大小，不改比例；
+     · 容器收窄时无需改任何图标规则，它是固定尺寸的、天然居中，
+       不会像百分比尺寸那样受容器宽高比影响而变形。
+
+   尺寸自适应：`.mp-tbtn` 上的 --tbtn-w / --tbtn-h / --ico-size 三者
+   协同即可，窄视口只改这几个变量，所有图标同步等比缩放。
+   ─────────────────────────────────────────────────────────────────── */
+
+/* 精灵表本身不参与布局（已在 HTML 内联兜底，此处再加一道保险） */
+.mp-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* 图标基础落位：绝对定位 + 四边归零 + margin:auto = 严格居中。
+   尺寸 = --ico-size（各图标的设计尺寸）× --ico-scale（容器给的缩放系数）。
+   用 calc 相乘而不是改 width/height 常量，是为了让窄视口只调一个系数
+   就能等比缩放全部图标。 */
+.mp-ico {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: auto;
+  width: calc(var(--ico-size) * var(--ico-scale, 1));
+  height: calc(var(--ico-size) * var(--ico-scale, 1));
+  fill: currentColor;
+  color: #000000;
+  pointer-events: none;
+}
+
+/* 播放按钮的 ▶ / ⏸ 切换：只换 <use> 的引用，不改盒子尺寸，
+   因此切换时图标中心不动、不跳动。 */
+.mp-ico--play  { --ico-size: 14px; }
+.mp-ico--stop  { --ico-size: 13px; }
+.mp-ico--pause { --ico-size: 14px; }
+
+/* 复合箭头字形按视觉重量微调尺寸，保证九个图标「看起来一样大」。
+   这是设计意图上的光学补偿，不是几何偏移 —— 中心始终在容器中心。 */
+.mp-ico--first { --ico-size: 16px; }
+.mp-ico--prev  { --ico-size: 17px; }
+.mp-ico--fwd   { --ico-size: 17px; }
+.mp-ico--last  { --ico-size: 16px; }
+.mp-ico--eject { --ico-size: 16px; }
+.mp-ico--loop  { --ico-size: 15px; }
+.mp-ico--vol   { --ico-size: 16px; }
+
+/* ==========================================================================
+   ③ 面板：音量 / 播放列表（由工具栏开关切换显示）
+   ========================================================================== */
+.mp-panel {
+  margin-top: 9px;
+  padding: 6px 7px 7px;
+  background: var(--face);
+  border: 1px solid;
+  border-color: var(--light) var(--dark) var(--dark) var(--light);
+  box-shadow: inset 1px 1px 0 var(--hilight), inset -1px -1px 0 var(--shadow);
+}
+.mp-panel[hidden] { display: none; }
+.mp-panel__title {
+  font: bold 11px/1 var(--font);
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+/* 音量行 */
+.mp-vol { display: flex; align-items: center; }
+.mp-vol__mute {
+  flex: none;
+  width: 24px;
+  height: 20px;
+  margin-right: 7px;
+  padding: 0;
+  background: var(--face);
+  border: 1px solid;
+  border-color: var(--light) var(--dark) var(--dark) var(--light);
+  box-shadow: inset 1px 1px 0 var(--hilight), inset -1px -1px 0 var(--shadow);
+  position: relative;
+  cursor: default;
+}
+.mp-vol__mute.is-on {
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+}
+.mp-vol__slot {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 20px;
+  background: #ffffff;
+  border: 1px solid;
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+  cursor: pointer;
+}
+.mp-vol__bar {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 80%;
+  background: linear-gradient(180deg, #000080 0%, #1084d0 55%, #000080 100%);
+  pointer-events: none;
+}
+/* 音量的旋钮与进度条旋钮共用同一套几何（见 ① 主刻度条处的说明） */
+
+/* 音量面板的静音按钮：图标同为 SVG */
+.mp-vol__mute > .mp-ico { --ico-size: 16px; }
+.mp-vol__slot:focus { outline: 1px dotted #000000; outline-offset: -3px; }
+.mp-vol__num {
+  flex: none;
+  width: 42px;
+  margin-left: 7px;
+  font: 10px/1 var(--mono);
+  color: var(--text);
+  text-align: right;
+}
+
+/* 播放列表 */
+.mp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 92px;
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid;
+  border-color: var(--dark) var(--light) var(--light) var(--dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+}
+.mp-list__item {
+  display: flex;
+  align-items: center;
+  padding: 3px 6px;
+  font: 11px/1.3 var(--font);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.mp-list__item + .mp-list__item { border-top: 1px solid #e4e0dc; }
+.mp-list__item.is-current {
+  background: #000080;
+  color: #ffffff;
+}
+.mp-list__idx {
+  flex: none;
+  width: 20px;
+  color: inherit;
+  opacity: .75;
+}
+.mp-list__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mp-list__dur {
+  flex: none;
+  margin-left: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  opacity: .8;
+}
+
+/* 工具栏开关的「已开启」态 */
 .window--mp .tb-btn.is-on {
   border-color: var(--dark) var(--light) var(--light) var(--dark);
   box-shadow: inset 1px 1px 0 var(--shadow);
+  background: #d4d0c8;
 }
 
-/* ---------- 窄屏：覆盖层整体等比缩放，避免溢出 ---------- */
+/* 播放中：读数与状态灯 */
+.window--mp.is-playing .mp-readout__elapsed { color: #000080; }
+
+/* ---------- 窄屏适配 ---------- */
 @media (max-width: 480px) {
   .window--mp { --window-w: 100%; }
-  .mp-workspace { height: 220px; }
+  .mp-workspace { height: 226px; }
+  /* 按钮与图标一起收窄：改 --ico-scale 一个系数，所有图标**等比**缩小，
+     彼此比例关系不变，居中方式也不变（仍是容器中心）。 */
+  .mp-tbtn {
+    --tbtn-w: 25px;
+    --tbtn-h: 21px;
+    --ico-scale: 0.9;
+  }
+  .mp-spin > .mp-ico { --ico-size: 8px; }
+  .mp-readout__track { display: none; }
 }
 @media (max-height: 520px) {
-  .mp-workspace { height: 180px; }
+  .mp-workspace { height: 196px; }
 }
 
 /* ==========================================================================
@@ -2171,11 +2374,11 @@ code, pre, .mono { font-family: var(--mono); }
     max-height: none;
     min-height: 300px;
   }
-  /* 播放器舞台在窄屏下自动收缩，不必撑到 300px */
+  /* 播放器舞台在窄屏下自动收缩（刻度条 + 读数 + 按钮排约需 150px） */
   .mp-workspace {
     height: auto;
     max-height: none;
-    min-height: 170px;
+    min-height: 158px;
   }
   /* 最大化时不再覆写高度：弹性填充由基础规则负责，且 min-height 必须归零，
      否则小屏下 min-height:300px 会顶开容器、重新制造缺口。 */
@@ -2243,10 +2446,10 @@ code, pre, .mono { font-family: var(--mono); }
     min-height: 180px;
     max-height: none;
   }
-  /* 播放器舞台只需容纳 86px 的 iframe，矮视口下给一个更小的下限 */
+  /* 播放器舞台在矮视口下给一个更小的下限（面板可滚动，不强行撑高） */
   .mp-workspace {
     height: auto;
-    min-height: 130px;
+    min-height: 150px;
     max-height: none;
   }
   .window.is-maxed > .workspace,
