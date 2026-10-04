@@ -1640,6 +1640,13 @@ code, pre, .mono { font-family: var(--mono); }
   white-space: pre;
   overflow: auto;
   tab-size: 2;
+  /* 触摸滚动：显式声明纵向可平移，避免手势被外层拦截；
+     pan-x 保留横向平移（wrap="off" 时长行需要横滚）。
+     注：不使用 overscroll-behavior —— 需 Edge 63+ / Chromium 内核，
+     本表基线 EdgeHTML 18 会整条丢弃；边界行为改由 touch-action
+     与容器 overflow 收口，在旧内核下同样有效。 */
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 .np-editor::placeholder { color: #909090; }
 
@@ -1648,6 +1655,11 @@ code, pre, .mono { font-family: var(--mono); }
   background: #fff;
   overflow-y: auto;
   overflow-x: hidden;
+  /* 触摸滚动：只声明 pan-y（本面板不横滚），并启用 iOS 风格惯性滚动。
+     惯性在现代 Chromium / EdgeHTML 上默认就有，此处显式声明是给 Safari
+     系内核的兼容开关（旧 iOS 需该属性才回弹/惯性）。 */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ==========================================================================
@@ -2380,6 +2392,30 @@ code, pre, .mono { font-family: var(--mono); }
     max-height: none;
     min-height: 158px;
   }
+  /* 记事本工作区必须有【有界高度】：若沿用 height:auto，工作区会随 Markdown
+     内容无限撑高（实测 390px 视口下长到 2325px），内部预览/编辑面板因此
+     永远不产生溢出（scrollHeight === clientHeight），滚动容器形同虚设；
+     同时超高窗口会被外层 .desktop 的 overflow:hidden 裁掉，内容彻底不可达。
+     这里以视口为基准给出上限，把「滚动」交还给内部面板（.np-pane--preview /
+     .np-editor），这才是可触摸滚动、带惯性的真正滚动容器。
+
+     两条 height 是**有意为之的渐进增强**（声明级回退，非笔误）：
+       ① 先给 vh 版本 —— 所有浏览器都能解析，是安全基线；
+       ② 再给 dvh 版本 —— 支持的浏览器（Chromium 108+ / Safari 15.4+）覆盖它，
+          移动端地址栏收放时不会跳变；不支持者整条丢弃，自动退回 ①。
+     注意横屏矮视口（如 844x390）会被后面的 @media (max-height:520px) 接管，
+     那条规则在源序上更靠后、优先级更高，是本文件既有的既定行为。 */
+  .np-workspace {
+    height: calc(100vh - 190px);
+    /* 上下界同时给：矮视口不塌陷，高视口不无限拉伸 */
+    min-height: 220px;
+    height: calc(100dvh - 190px);
+  }
+  /* 最大化时仍由弹性填充接管，不覆写高度（否则小屏会出现缺口） */
+  .window--np.is-maxed > .np-workspace {
+    height: auto;
+    min-height: 0;
+  }
   /* 最大化时不再覆写高度：弹性填充由基础规则负责，且 min-height 必须归零，
      否则小屏下 min-height:300px 会顶开容器、重新制造缺口。 */
   .window.is-maxed > .workspace,
@@ -2390,7 +2426,6 @@ code, pre, .mono { font-family: var(--mono); }
   }
 
   /* 记事本：工具栏允许换行，行号槽收窄，代码块横向滚动 */
-  .np-workspace { min-height: 260px; }
   .np-lineno { width: 26px; padding: 6px 4px 6px 0; font-size: 11px; }
   .np-editor  { padding: 6px 8px; font-size: 12px; }
   .np-pane--preview { padding: 8px; }
