@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-08T06:59:08+08:00
+ * 生成时间：2026-10-08T13:46:01+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-10-08T06:59:08+08:00",
-  "generated_at_ts": 1791413948,
+  "generated_at": "2026-10-08T13:46:01+08:00",
+  "generated_at_ts": 1791438361,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,19 +28,19 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11241,
+    "fans": 11245,
     "following": 1607
   },
   "stat": {
-    "play": 2278498,
-    "like": 253726,
-    "video_count": 168
+    "play": 2286928,
+    "like": 253843,
+    "video_count": 169
   },
   "partitions": [
     {
       "tid": 1,
       "name": "动画",
-      "count": 158
+      "count": 159
     },
     {
       "tid": 160,
@@ -65,6 +65,18 @@ window.BILI_DATA = {
   ],
   "videos": [
     {
+      "bvid": "BV1DQH26zEwj",
+      "aid": 117400867439491,
+      "title": "【普瑞赛斯】𝗪𝗢𝗡𝗗𝗘𝗥【手搓动画大赛】",
+      "cover": "https://i1.hdslb.com/bfs/archive/3deb21e517468de2a8803ee1d4eb1902c14e2724.jpg",
+      "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
+      "pubdate": 1791432000,
+      "pubdate_text": "2026-10-08 12:00",
+      "play": 697,
+      "comment": 21,
+      "duration": "00:44"
+    },
+    {
       "bvid": "BV1b4ar6mEMU",
       "aid": 117365517847076,
       "title": "【元祖!东方project】相约在八云家咖啡店见面（东方x邦邦二创）",
@@ -72,8 +84,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 35022,
-      "comment": 114,
+      "play": 36856,
+      "comment": 118,
       "duration": "01:37"
     },
     {
@@ -84,7 +96,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 116088,
+      "play": 116136,
       "comment": 162,
       "duration": "01:19"
     },
@@ -96,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8007,
+      "play": 8009,
       "comment": 46,
       "duration": "02:44"
     },
@@ -108,24 +120,20 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1GW8M69EL6",
       "pubdate": 1787292260,
       "pubdate_text": "2026-08-21 14:04",
-      "play": 5288,
+      "play": 5289,
       "comment": 68,
       "duration": "00:50"
-    },
-    {
-      "bvid": "BV1rJ8j6bEVS",
-      "aid": 117120000134345,
-      "title": "【东方】给魔理沙↑驱魔↓【bilibilionly同人扶持计划】",
-      "cover": "https://i0.hdslb.com/bfs/archive/c4b17be015d19f35fefeb86fdf2dec4f68fd6890.jpg",
-      "url": "https://www.bilibili.com/video/BV1rJ8j6bEVS",
-      "pubdate": 1787109631,
-      "pubdate_text": "2026-08-19 11:20",
-      "play": 20126,
-      "comment": 67,
-      "duration": "00:32"
     }
   ],
   "dynamics": [
+    {
+      "type": "video",
+      "kind": "投稿",
+      "text": "投稿了视频《【普瑞赛斯】𝗪𝗢𝗡𝗗𝗘𝗥【手搓动画大赛】》",
+      "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
+      "ts": 1791432000,
+      "time_text": "2026-10-08 12:00"
+    },
     {
       "type": "video",
       "kind": "投稿",
@@ -157,14 +165,6 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1GW8M69EL6",
       "ts": 1787292260,
       "time_text": "2026-08-21 14:04"
-    },
-    {
-      "type": "video",
-      "kind": "投稿",
-      "text": "投稿了视频《【东方】给魔理沙↑驱魔↓【bilibilionly同人扶持计划】》",
-      "url": "https://www.bilibili.com/video/BV1rJ8j6bEVS",
-      "ts": 1787109631,
-      "time_text": "2026-08-19 11:20"
     },
     {
       "type": "profile",
