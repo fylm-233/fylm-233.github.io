@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-10T13:33:03+08:00
+ * 生成时间：2026-10-10T20:19:24+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-10-10T13:33:03+08:00",
-  "generated_at_ts": 1791610383,
+  "generated_at": "2026-10-10T20:19:24+08:00",
+  "generated_at_ts": 1791634764,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,12 +28,12 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11271,
+    "fans": 11280,
     "following": 1607
   },
   "stat": {
     "play": 2290302,
-    "like": 253997,
+    "like": 254036,
     "video_count": 169
   },
   "partitions": [
@@ -72,8 +72,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 38569,
-      "comment": 159,
+      "play": 43848,
+      "comment": 170,
       "duration": "00:44"
     },
     {
@@ -84,7 +84,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 37254,
+      "play": 37317,
       "comment": 118,
       "duration": "01:37"
     },
@@ -96,7 +96,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 116480,
+      "play": 116620,
       "comment": 162,
       "duration": "01:19"
     },
@@ -108,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8011,
+      "play": 8016,
       "comment": 46,
       "duration": "02:44"
     },
@@ -120,7 +120,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1GW8M69EL6",
       "pubdate": 1787292260,
       "pubdate_text": "2026-08-21 14:04",
-      "play": 5302,
+      "play": 5308,
       "comment": 68,
       "duration": "00:50"
     }
