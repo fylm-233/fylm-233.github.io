@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-11T13:29:03+08:00
+ * 生成时间：2026-10-11T20:35:57+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-10-11T13:29:03+08:00",
-  "generated_at_ts": 1791696543,
+  "generated_at": "2026-10-11T20:35:57+08:00",
+  "generated_at_ts": 1791722157,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,19 +28,19 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11297,
+    "fans": 11299,
     "following": 1608
   },
   "stat": {
     "play": 2291378,
-    "like": 254120,
-    "video_count": 169
+    "like": 254159,
+    "video_count": 167
   },
   "partitions": [
     {
       "tid": 1,
       "name": "动画",
-      "count": 159
+      "count": 157
     },
     {
       "tid": 160,
@@ -72,8 +72,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 52780,
-      "comment": 197,
+      "play": 55483,
+      "comment": 205,
       "duration": "00:44"
     },
     {
@@ -84,7 +84,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 37435,
+      "play": 37480,
       "comment": 119,
       "duration": "01:37"
     },
@@ -96,7 +96,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 117021,
+      "play": 117241,
       "comment": 162,
       "duration": "01:19"
     },
@@ -108,21 +108,21 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8024,
+      "play": 8033,
       "comment": 46,
       "duration": "02:44"
     },
     {
-      "bvid": "BV1GW8M69EL6",
-      "aid": 117131978999638,
-      "title": "【东方】今天你要来一把UNO吗【bilibilionly同人扶持计划】未完成预告",
-      "cover": "https://i1.hdslb.com/bfs/archive/76ae1125bd2d7d77a24735f72969cdd6c1f8e90c.jpg",
-      "url": "https://www.bilibili.com/video/BV1GW8M69EL6",
-      "pubdate": 1787292260,
-      "pubdate_text": "2026-08-21 14:04",
-      "play": 5314,
-      "comment": 68,
-      "duration": "00:50"
+      "bvid": "BV1DHbR6mEoj",
+      "aid": 117105840162385,
+      "title": "【KAITO】ワンダー/奇境(r-906)",
+      "cover": "https://i2.hdslb.com/bfs/archive/83c2658411e1f746d3fcdaf688c37c2ca80fb6b7.jpg",
+      "url": "https://www.bilibili.com/video/BV1DHbR6mEoj",
+      "pubdate": 1786893424,
+      "pubdate_text": "2026-08-16 23:17",
+      "play": 5660,
+      "comment": 17,
+      "duration": "00:31"
     }
   ],
   "dynamics": [
@@ -161,10 +161,10 @@ window.BILI_DATA = {
     {
       "type": "video",
       "kind": "投稿",
-      "text": "投稿了视频《【东方】今天你要来一把UNO吗【bilibilionly同人扶持计划】未完成预告》",
-      "url": "https://www.bilibili.com/video/BV1GW8M69EL6",
-      "ts": 1787292260,
-      "time_text": "2026-08-21 14:04"
+      "text": "投稿了视频《【KAITO】ワンダー/奇境(r-906)》",
+      "url": "https://www.bilibili.com/video/BV1DHbR6mEoj",
+      "ts": 1786893424,
+      "time_text": "2026-08-16 23:17"
     },
     {
       "type": "profile",
