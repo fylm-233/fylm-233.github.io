@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-16T05:14:16+08:00
+ * 生成时间：2026-10-16T12:14:51+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-10-16T05:14:16+08:00",
-  "generated_at_ts": 1792098856,
+  "generated_at": "2026-10-16T12:14:51+08:00",
+  "generated_at_ts": 1792124091,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,12 +28,12 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11343,
+    "fans": 11347,
     "following": 1608
   },
   "stat": {
     "play": 2294778,
-    "like": 254434,
+    "like": 254447,
     "video_count": 167
   },
   "partitions": [
@@ -72,7 +72,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 84826,
+      "play": 86563,
       "comment": 262,
       "duration": "00:44"
     },
@@ -84,7 +84,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 37911,
+      "play": 37933,
       "comment": 122,
       "duration": "01:37"
     },
@@ -96,8 +96,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 118009,
-      "comment": 162,
+      "play": 118033,
+      "comment": 163,
       "duration": "01:19"
     },
     {
@@ -120,7 +120,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DHbR6mEoj",
       "pubdate": 1786893424,
       "pubdate_text": "2026-08-16 23:17",
-      "play": 5698,
+      "play": 5702,
       "comment": 17,
       "duration": "00:31"
     }
