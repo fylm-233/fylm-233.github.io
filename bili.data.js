@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-20T19:21:24+08:00
+ * 生成时间：2026-10-21T00:45:56+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-10-20T19:21:24+08:00",
-  "generated_at_ts": 1792495284,
+  "generated_at": "2026-10-21T00:45:56+08:00",
+  "generated_at_ts": 1792514756,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,19 +28,19 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11385,
+    "fans": 11386,
     "following": 1610
   },
   "stat": {
     "play": 2300016,
-    "like": 254909,
-    "video_count": 167
+    "like": 254986,
+    "video_count": 168
   },
   "partitions": [
     {
       "tid": 1,
       "name": "动画",
-      "count": 157
+      "count": 158
     },
     {
       "tid": 160,
@@ -65,6 +65,18 @@ window.BILI_DATA = {
   ],
   "videos": [
     {
+      "bvid": "BV1QWnN69EL2",
+      "aid": 117474083277072,
+      "title": "【东方】你从河童那淘来的眼镜要摆弄多久啊魔理沙【bilibilionly同人扶持计划】",
+      "cover": "https://i2.hdslb.com/bfs/archive/33ecb0d53cee4dbdde7b0c3eb517f85ec9b47b8d.jpg",
+      "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
+      "pubdate": 1792512460,
+      "pubdate_text": "2026-10-21 00:07",
+      "play": 244,
+      "comment": 5,
+      "duration": "00:31"
+    },
+    {
       "bvid": "BV1DQH26zEwj",
       "aid": 117400867439491,
       "title": "【普瑞赛斯】𝗪𝗢𝗡𝗗𝗘𝗥【手搓动画大赛】",
@@ -72,8 +84,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 99407,
-      "comment": 280,
+      "play": 99937,
+      "comment": 281,
       "duration": "00:44"
     },
     {
@@ -84,8 +96,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 38542,
-      "comment": 123,
+      "play": 38586,
+      "comment": 124,
       "duration": "01:37"
     },
     {
@@ -96,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 119821,
+      "play": 119939,
       "comment": 163,
       "duration": "01:19"
     },
@@ -108,24 +120,20 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8091,
+      "play": 8094,
       "comment": 46,
       "duration": "02:44"
-    },
-    {
-      "bvid": "BV1DHbR6mEoj",
-      "aid": 117105840162385,
-      "title": "【KAITO】ワンダー/奇境(r-906)",
-      "cover": "https://i2.hdslb.com/bfs/archive/83c2658411e1f746d3fcdaf688c37c2ca80fb6b7.jpg",
-      "url": "https://www.bilibili.com/video/BV1DHbR6mEoj",
-      "pubdate": 1786893424,
-      "pubdate_text": "2026-08-16 23:17",
-      "play": 5777,
-      "comment": 17,
-      "duration": "00:31"
     }
   ],
   "dynamics": [
+    {
+      "type": "video",
+      "kind": "投稿",
+      "text": "投稿了视频《【东方】你从河童那淘来的眼镜要摆弄多久啊魔理沙【bilibilionly同人扶持计划】》",
+      "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
+      "ts": 1792512460,
+      "time_text": "2026-10-21 00:07"
+    },
     {
       "type": "video",
       "kind": "投稿",
@@ -157,14 +165,6 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "ts": 1787462040,
       "time_text": "2026-08-23 13:14"
-    },
-    {
-      "type": "video",
-      "kind": "投稿",
-      "text": "投稿了视频《【KAITO】ワンダー/奇境(r-906)》",
-      "url": "https://www.bilibili.com/video/BV1DHbR6mEoj",
-      "ts": 1786893424,
-      "time_text": "2026-08-16 23:17"
     },
     {
       "type": "profile",
