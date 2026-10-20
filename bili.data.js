@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-21T00:45:56+08:00
+ * 生成时间：2026-10-21T05:29:35+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
-  "ok": true,
-  "stale": false,
-  "generated_at": "2026-10-21T00:45:56+08:00",
-  "generated_at_ts": 1792514756,
+  "ok": false,
+  "stale": true,
+  "generated_at": "2026-10-21T05:29:35+08:00",
+  "generated_at_ts": 1792531775,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,41 +28,15 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11386,
+    "fans": 11393,
     "following": 1610
   },
   "stat": {
     "play": 2300016,
-    "like": 254986,
-    "video_count": 168
+    "like": 255122,
+    "video_count": 0
   },
-  "partitions": [
-    {
-      "tid": 1,
-      "name": "动画",
-      "count": 158
-    },
-    {
-      "tid": 160,
-      "name": "生活",
-      "count": 6
-    },
-    {
-      "tid": 3,
-      "name": "音乐",
-      "count": 2
-    },
-    {
-      "tid": 181,
-      "name": "影视",
-      "count": 1
-    },
-    {
-      "tid": 4,
-      "name": "游戏",
-      "count": 1
-    }
-  ],
+  "partitions": [],
   "videos": [
     {
       "bvid": "BV1QWnN69EL2",
