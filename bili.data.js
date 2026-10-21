@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-21T05:29:35+08:00
+ * 生成时间：2026-10-21T12:24:53+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
-  "ok": false,
-  "stale": true,
-  "generated_at": "2026-10-21T05:29:35+08:00",
-  "generated_at_ts": 1792531775,
+  "ok": true,
+  "stale": false,
+  "generated_at": "2026-10-21T12:24:53+08:00",
+  "generated_at_ts": 1792556693,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,15 +28,41 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11393,
+    "fans": 11452,
     "following": 1610
   },
   "stat": {
     "play": 2300016,
-    "like": 255122,
-    "video_count": 0
+    "like": 256678,
+    "video_count": 168
   },
-  "partitions": [],
+  "partitions": [
+    {
+      "tid": 1,
+      "name": "动画",
+      "count": 158
+    },
+    {
+      "tid": 160,
+      "name": "生活",
+      "count": 6
+    },
+    {
+      "tid": 3,
+      "name": "音乐",
+      "count": 2
+    },
+    {
+      "tid": 181,
+      "name": "影视",
+      "count": 1
+    },
+    {
+      "tid": 4,
+      "name": "游戏",
+      "count": 1
+    }
+  ],
   "videos": [
     {
       "bvid": "BV1QWnN69EL2",
@@ -46,8 +72,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
       "pubdate": 1792512460,
       "pubdate_text": "2026-10-21 00:07",
-      "play": 244,
-      "comment": 5,
+      "play": 17371,
+      "comment": 73,
       "duration": "00:31"
     },
     {
@@ -58,8 +84,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 99937,
-      "comment": 281,
+      "play": 100472,
+      "comment": 283,
       "duration": "00:44"
     },
     {
@@ -70,8 +96,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 38586,
-      "comment": 124,
+      "play": 38651,
+      "comment": 125,
       "duration": "01:37"
     },
     {
@@ -82,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 119939,
+      "play": 119987,
       "comment": 163,
       "duration": "01:19"
     },
@@ -94,7 +120,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8094,
+      "play": 8096,
       "comment": 46,
       "duration": "02:44"
     }
