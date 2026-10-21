@@ -1,4 +1,4 @@
-# 哔哩哔哩 UID 11897608 · Windows Classic 风格静态主页
+# 哔哩哔哩  Windows Classic 风格静态主页
 
 以 **Windows Classic（Windows 3.1 – 2000 / Y2K）** 界面为蓝本的静态主页，展示哔哩哔哩
 UID `11897608` 的账号信息、信息动态与最新 5 条投稿。
