@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-21T19:37:00+08:00
+ * 生成时间：2026-10-22T01:02:47+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
-  "ok": true,
-  "stale": false,
-  "generated_at": "2026-10-21T19:37:00+08:00",
-  "generated_at_ts": 1792582620,
+  "ok": false,
+  "stale": true,
+  "generated_at": "2026-10-22T01:02:47+08:00",
+  "generated_at_ts": 1792602167,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -28,12 +28,12 @@ window.BILI_DATA = {
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 11514,
+    "fans": 11598,
     "following": 1610
   },
   "stat": {
     "play": 2300797,
-    "like": 258410,
+    "like": 260682,
     "video_count": 168
   },
   "partitions": [
@@ -175,5 +175,8 @@ window.BILI_DATA = {
       "time_text": ""
     }
   ],
-  "errors": []
+  "errors": [
+    "投稿列表(arc/search)：HTTP 412 Precondition Failed {\"code\":-412,\"message\":\"request was banned\",\"ttl\":1}",
+    "投稿列表(arc/search 旧版)：HTTP 412 Precondition Failed {\"code\":-412,\"message\":\"request was banned\",\"ttl\":1}"
+  ]
 };
