@@ -1,9 +1,9 @@
 {
   "uid": 11897608,
-  "ok": true,
-  "stale": false,
-  "generated_at": "2026-10-25T04:35:46+08:00",
-  "generated_at_ts": 1792874146,
+  "ok": false,
+  "stale": true,
+  "generated_at": "2026-10-25T12:22:35+08:00",
+  "generated_at_ts": 1792902155,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -13,12 +13,12 @@
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 12030,
+    "fans": 12049,
     "following": 1611
   },
   "stat": {
-    "play": 2453482,
-    "like": 270806,
+    "play": 2504071,
+    "like": 271274,
     "video_count": 168
   },
   "partitions": [
@@ -112,11 +112,27 @@
   ],
   "dynamics": [
     {
+      "type": "dynamic",
+      "kind": "动态",
+      "text": "发布了一条动态",
+      "url": "https://t.bilibili.com/1241527014983204900",
+      "ts": "1787903934",
+      "time_text": "2026-08-28 15:58"
+    },
+    {
+      "type": "dynamic",
+      "kind": "动态",
+      "text": "[Floating Dream静态表情包_诶嘿]至于底图啥的自己去咱的X或者P站去看吧 支持咱的话可以看看咱们社团的制品哦 https://b23.tv/mall-nv6u-2pshO https://b23.tv/mall-nv6u-2psib查看图片",
+      "url": "https://t.bilibili.com/1261327230806523929",
+      "ts": "1792514031",
+      "time_text": "2026-10-21 00:33"
+    },
+    {
       "type": "video",
       "kind": "投稿",
       "text": "投稿了视频《【东方】你从河童那淘来的眼镜要摆弄多久啊魔理沙【bilibilionly同人扶持计划】》",
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
-      "ts": 1792512460,
+      "ts": "1792512460",
       "time_text": "2026-10-21 00:07"
     },
     {
@@ -124,7 +140,7 @@
       "kind": "投稿",
       "text": "投稿了视频《【普瑞赛斯】𝗪𝗢𝗡𝗗𝗘𝗥【手搓动画大赛】》",
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
-      "ts": 1791432000,
+      "ts": "1791432022",
       "time_text": "2026-10-08 12:00"
     },
     {
@@ -132,33 +148,12 @@
       "kind": "投稿",
       "text": "投稿了视频《【元祖!东方project】相约在八云家咖啡店见面（东方x邦邦二创）》",
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
-      "ts": 1790855738,
+      "ts": "1790855739",
       "time_text": "2026-10-01 19:55"
-    },
-    {
-      "type": "video",
-      "kind": "投稿",
-      "text": "投稿了视频《【初音未来】将棋一番！但是由miku来下棋！【bilibilionly同人扶持计划】》",
-      "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
-      "ts": 1788102412,
-      "time_text": "2026-08-30 23:06"
-    },
-    {
-      "type": "video",
-      "kind": "投稿",
-      "text": "投稿了视频《【东方/人气投票应援】请给小鸡一点爱吧QwQ(mottai描改)【bilibilionly同人扶持计划】》",
-      "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
-      "ts": 1787462040,
-      "time_text": "2026-08-23 13:14"
-    },
-    {
-      "type": "profile",
-      "kind": "资料",
-      "text": "账号资料快照：风雨铃木（Lv.6）· 签名：~One Touhou，One Dream！做东方同人视频重要是开心就好～",
-      "url": "https://space.bilibili.com/11897608",
-      "ts": null,
-      "time_text": ""
     }
   ],
-  "errors": []
+  "errors": [
+    "投稿列表(arc/search)：HTTP 412 Precondition Failed {\"code\":-412,\"message\":\"request was banned\",\"ttl\":1}",
+    "投稿列表(arc/search 旧版)：接口返回 code=-799 message=请求过于频繁，请稍后再试"
+  ]
 }
