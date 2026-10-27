@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-10-28T01:54:46+08:00
+ * 生成时间：2026-10-28T06:04:15+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-10-28T01:54:46+08:00",
-  "generated_at_ts": 1793123686,
+  "generated_at": "2026-10-28T06:04:15+08:00",
+  "generated_at_ts": 1793138655,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -33,7 +33,7 @@ window.BILI_DATA = {
   },
   "stat": {
     "play": 2544909,
-    "like": 274418,
+    "like": 274452,
     "video_count": 168
   },
   "partitions": [
@@ -72,8 +72,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
       "pubdate": 1792512460,
       "pubdate_text": "2026-10-21 00:07",
-      "play": 243286,
-      "comment": 448,
+      "play": 243832,
+      "comment": 451,
       "duration": "00:31"
     },
     {
@@ -84,8 +84,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 122455,
-      "comment": 309,
+      "play": 122518,
+      "comment": 310,
       "duration": "00:44"
     },
     {
@@ -96,7 +96,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 39857,
+      "play": 39866,
       "comment": 130,
       "duration": "01:37"
     },
@@ -108,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 121807,
+      "play": 121813,
       "comment": 163,
       "duration": "01:19"
     },
