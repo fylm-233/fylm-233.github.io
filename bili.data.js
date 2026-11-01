@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-11-01T21:07:15+08:00
+ * 生成时间：2026-11-02T05:56:01+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-11-01T21:07:15+08:00",
-  "generated_at_ts": 1793538435,
+  "generated_at": "2026-11-02T05:56:01+08:00",
+  "generated_at_ts": 1793570161,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -33,7 +33,7 @@ window.BILI_DATA = {
   },
   "stat": {
     "play": 2830726,
-    "like": 286048,
+    "like": 286069,
     "video_count": 168
   },
   "partitions": [
@@ -72,8 +72,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
       "pubdate": 1792512460,
       "pubdate_text": "2026-10-21 00:07",
-      "play": 515097,
-      "comment": 726,
+      "play": 515551,
+      "comment": 727,
       "duration": "00:31"
     },
     {
@@ -84,7 +84,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 127832,
+      "play": 127964,
       "comment": 323,
       "duration": "00:44"
     },
@@ -96,7 +96,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 40298,
+      "play": 40316,
       "comment": 133,
       "duration": "01:37"
     },
@@ -108,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 123042,
+      "play": 123096,
       "comment": 163,
       "duration": "01:19"
     },
@@ -120,34 +120,18 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8220,
+      "play": 8222,
       "comment": 46,
       "duration": "02:44"
     }
   ],
   "dynamics": [
     {
-      "type": "dynamic",
-      "kind": "动态",
-      "text": "发布了一条动态",
-      "url": "https://t.bilibili.com/1241527014983204900",
-      "ts": "1787903934",
-      "time_text": "2026-08-28 15:58"
-    },
-    {
-      "type": "dynamic",
-      "kind": "动态",
-      "text": "[Floating Dream静态表情包_诶嘿]至于底图啥的自己去咱的X或者P站去看吧 支持咱的话可以看看咱们社团的制品哦 https://b23.tv/mall-nv6u-2pshO https://b23.tv/mall-nv6u-2psib查看图片",
-      "url": "https://t.bilibili.com/1261327230806523929",
-      "ts": "1792514031",
-      "time_text": "2026-10-21 00:33"
-    },
-    {
       "type": "video",
       "kind": "投稿",
       "text": "投稿了视频《【东方】你从河童那淘来的眼镜要摆弄多久啊魔理沙【bilibilionly同人扶持计划】》",
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
-      "ts": "1792512460",
+      "ts": 1792512460,
       "time_text": "2026-10-21 00:07"
     },
     {
@@ -155,7 +139,7 @@ window.BILI_DATA = {
       "kind": "投稿",
       "text": "投稿了视频《【普瑞赛斯】𝗪𝗢𝗡𝗗𝗘𝗥【手搓动画大赛】》",
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
-      "ts": "1791432022",
+      "ts": 1791432000,
       "time_text": "2026-10-08 12:00"
     },
     {
@@ -163,8 +147,32 @@ window.BILI_DATA = {
       "kind": "投稿",
       "text": "投稿了视频《【元祖!东方project】相约在八云家咖啡店见面（东方x邦邦二创）》",
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
-      "ts": "1790855739",
+      "ts": 1790855738,
       "time_text": "2026-10-01 19:55"
+    },
+    {
+      "type": "video",
+      "kind": "投稿",
+      "text": "投稿了视频《【初音未来】将棋一番！但是由miku来下棋！【bilibilionly同人扶持计划】》",
+      "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
+      "ts": 1788102412,
+      "time_text": "2026-08-30 23:06"
+    },
+    {
+      "type": "video",
+      "kind": "投稿",
+      "text": "投稿了视频《【东方/人气投票应援】请给小鸡一点爱吧QwQ(mottai描改)【bilibilionly同人扶持计划】》",
+      "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
+      "ts": 1787462040,
+      "time_text": "2026-08-23 13:14"
+    },
+    {
+      "type": "profile",
+      "kind": "资料",
+      "text": "账号资料快照：风雨铃木（Lv.6）· 签名：~One Touhou，One Dream！做东方同人视频重要是开心就好～",
+      "url": "https://space.bilibili.com/11897608",
+      "ts": null,
+      "time_text": ""
     }
   ],
   "errors": []
