@@ -2,8 +2,8 @@
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-11-06T14:15:56+08:00",
-  "generated_at_ts": 1793945756,
+  "generated_at": "2026-11-07T03:14:21+08:00",
+  "generated_at_ts": 1793992461,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -18,7 +18,7 @@
   },
   "stat": {
     "play": 2839202,
-    "like": 286379,
+    "like": 286443,
     "video_count": 168
   },
   "partitions": [
@@ -57,8 +57,8 @@
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
       "pubdate": 1792512460,
       "pubdate_text": "2026-10-21 00:07",
-      "play": 518483,
-      "comment": 731,
+      "play": 519160,
+      "comment": 732,
       "duration": "00:31"
     },
     {
@@ -69,7 +69,7 @@
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 130144,
+      "play": 130383,
       "comment": 338,
       "duration": "00:44"
     },
@@ -81,7 +81,7 @@
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 40523,
+      "play": 40547,
       "comment": 134,
       "duration": "01:37"
     },
@@ -93,7 +93,7 @@
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 123680,
+      "play": 123818,
       "comment": 163,
       "duration": "01:19"
     },
@@ -105,7 +105,7 @@
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8239,
+      "play": 8240,
       "comment": 46,
       "duration": "02:44"
     }
