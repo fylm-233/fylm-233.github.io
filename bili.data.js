@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-11-11T07:07:06+08:00
+ * 生成时间：2026-11-11T13:50:59+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-11-11T07:07:06+08:00",
-  "generated_at_ts": 1794352026,
+  "generated_at": "2026-11-11T13:50:59+08:00",
+  "generated_at_ts": 1794376259,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -32,8 +32,8 @@ window.BILI_DATA = {
     "following": 1614
   },
   "stat": {
-    "play": 2845207,
-    "like": 286735,
+    "play": 2846054,
+    "like": 286753,
     "video_count": 168
   },
   "partitions": [
@@ -72,7 +72,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
       "pubdate": 1792512460,
       "pubdate_text": "2026-10-21 00:07",
-      "play": 522055,
+      "play": 522181,
       "comment": 734,
       "duration": "00:31"
     },
@@ -84,7 +84,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 132056,
+      "play": 132127,
       "comment": 337,
       "duration": "00:44"
     },
@@ -96,7 +96,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 40704,
+      "play": 40714,
       "comment": 134,
       "duration": "01:37"
     },
@@ -108,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 124518,
+      "play": 124539,
       "comment": 164,
       "duration": "01:19"
     },
@@ -120,7 +120,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8254,
+      "play": 8256,
       "comment": 46,
       "duration": "02:44"
     }
