@@ -2,8 +2,8 @@
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-11-11T21:58:51+08:00",
-  "generated_at_ts": 1794405531,
+  "generated_at": "2026-11-12T08:27:31+08:00",
+  "generated_at_ts": 1794443251,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -13,12 +13,12 @@
     "sign": "~One Touhou，One Dream！做东方同人视频重要是开心就好～",
     "level": 6,
     "sex": "保密",
-    "fans": 12629,
+    "fans": 12633,
     "following": 1614
   },
   "stat": {
     "play": 2846054,
-    "like": 286780,
+    "like": 286801,
     "video_count": 168
   },
   "partitions": [
@@ -57,7 +57,7 @@
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
       "pubdate": 1792512460,
       "pubdate_text": "2026-10-21 00:07",
-      "play": 522374,
+      "play": 522480,
       "comment": 734,
       "duration": "00:31"
     },
@@ -69,7 +69,7 @@
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 132207,
+      "play": 132267,
       "comment": 337,
       "duration": "00:44"
     },
@@ -81,7 +81,7 @@
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 40718,
+      "play": 40736,
       "comment": 134,
       "duration": "01:37"
     },
@@ -93,7 +93,7 @@
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 124595,
+      "play": 124611,
       "comment": 164,
       "duration": "01:19"
     },
@@ -105,7 +105,7 @@
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8257,
+      "play": 8259,
       "comment": 46,
       "duration": "02:44"
     }
