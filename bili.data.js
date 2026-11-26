@@ -11,14 +11,14 @@
  *
  * HTTP(S) 环境下前端仍优先使用 fetch 读取 bili.json，本文件不会被请求。
  *
- * 生成时间：2026-11-26T15:57:08+08:00
+ * 生成时间：2026-11-27T05:20:19+08:00
  * ========================================================================== */
 window.BILI_DATA = {
   "uid": 11897608,
   "ok": true,
   "stale": false,
-  "generated_at": "2026-11-26T15:57:08+08:00",
-  "generated_at_ts": 1795679828,
+  "generated_at": "2026-11-27T05:20:19+08:00",
+  "generated_at_ts": 1795728019,
   "source": "bilibili-wbi",
   "limit": 5,
   "user": {
@@ -33,7 +33,7 @@ window.BILI_DATA = {
   },
   "stat": {
     "play": 2860083,
-    "like": 288025,
+    "like": 288258,
     "video_count": 168
   },
   "partitions": [
@@ -72,7 +72,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1QWnN69EL2",
       "pubdate": 1792512460,
       "pubdate_text": "2026-10-21 00:07",
-      "play": 525711,
+      "play": 525731,
       "comment": 729,
       "duration": "00:31"
     },
@@ -84,8 +84,8 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1DQH26zEwj",
       "pubdate": 1791432000,
       "pubdate_text": "2026-10-08 12:00",
-      "play": 135197,
-      "comment": 345,
+      "play": 135306,
+      "comment": 346,
       "duration": "00:44"
     },
     {
@@ -96,7 +96,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1b4ar6mEMU",
       "pubdate": 1790855738,
       "pubdate_text": "2026-10-01 19:55",
-      "play": 41252,
+      "play": 41265,
       "comment": 134,
       "duration": "01:37"
     },
@@ -108,7 +108,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1xbtW6UEH6",
       "pubdate": 1788102412,
       "pubdate_text": "2026-08-30 23:06",
-      "play": 126560,
+      "play": 126648,
       "comment": 164,
       "duration": "01:19"
     },
@@ -120,7 +120,7 @@ window.BILI_DATA = {
       "url": "https://www.bilibili.com/video/BV1Yd846yEZn",
       "pubdate": 1787462040,
       "pubdate_text": "2026-08-23 13:14",
-      "play": 8306,
+      "play": 8307,
       "comment": 46,
       "duration": "02:44"
     }
